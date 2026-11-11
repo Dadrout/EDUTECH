@@ -19,6 +19,11 @@ import { analyzeSkills } from "@/lib/analytics/skills";
 import { computeTopicStats, type TopicStats } from "@/lib/analytics/topics";
 import { formatCi, formatDate, formatHours, formatInt, formatPct } from "@/lib/format";
 import { useReadyData } from "@/providers/data-provider";
+import { AiReportSection } from "@/components/ai/ai-report";
+import { useAiRequest } from "@/components/ai/use-ai";
+import { buildAiContext } from "@/lib/ai/context";
+import type { AiReportInsights } from "@/lib/ai/schema";
+import { EMPTY_FILTERS } from "@/lib/domain/types";
 import { ErrorBars, QuestionTable } from "./skills-view";
 
 const resources = new Map<string, Promise<Uint8Array>>();
@@ -59,6 +64,12 @@ function ReportContent() {
   const errors = React.useMemo(() => analyzeSkills(records, config), [records, config]);
   const report = React.useMemo(() => buildReport(dataset, { subject: filters.subject, grade: filters.grade }, config), [dataset, filters.subject, filters.grade, config]);
   const [busy, setBusy] = React.useState<"report" | "appendix" | null>(null);
+  // AI-контекст — по той же области, что и отчёт (предмет и параллель).
+  const aiContext = React.useMemo(() => buildAiContext({ dataset, filters: { ...EMPTY_FILTERS, subject: filters.subject, grade: filters.grade }, config, page: "reports" }), [dataset, filters.subject, filters.grade, config]);
+  const aiReport = useAiRequest("report");
+  const resetAi = aiReport.reset;
+  React.useEffect(() => resetAi(), [aiContext, resetAi]);
+  const aiForPdf = aiReport.answer && aiReport.context ? { insights: aiReport.answer.result as AiReportInsights, context: aiReport.context, source: `${aiReport.answer.provider} · ${aiReport.answer.model}` } : undefined;
   const [error, setError] = React.useState<string | null>(null);
   const r = m.reports;
   const qualityLabels: Record<DataQualityKind, string> = {
@@ -89,7 +100,7 @@ function ReportContent() {
         import("@/lib/report/pdf"), resource("/fonts/report/NotoSans-Regular.ttf"), resource("/fonts/report/NotoSans-Bold.ttf"), resource("/brand/bilimlens-logo.png"),
         cjk ? resource("/fonts/report/NotoSans-CJK-Fallback.ttf") : Promise.resolve(undefined),
       ]);
-      const bytes = await generateReportPdf(report, { fonts: { regular, bold, fallback }, locale, m, logo, appendix, topics, questions: errors.questions });
+      const bytes = await generateReportPdf(report, { fonts: { regular, bold, fallback }, locale, m, logo, appendix, topics, questions: errors.questions, ai: appendix ? undefined : aiForPdf });
       const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes).buffer], { type: "application/pdf" }));
       const anchor = document.createElement("a"); anchor.href = url;
       anchor.download = `BilimLens-${appendix ? "appendix" : "report"}-${report.generatedAt.slice(0, 10)}.pdf`;
@@ -113,6 +124,7 @@ function ReportContent() {
       </div>
     </div>
     {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
+    <AiReportSection context={aiContext} request={aiReport as Parameters<typeof AiReportSection>[0]["request"]} />
     {report.sample.isSynthetic ? <p role="note" className="text-xs text-level-medium-fg">{r.synthetic}</p> : null}
     {unplanned > 0 ? <p role="note" className="text-sm text-level-medium-fg">{r.unplannedTopics}: {formatInt(unplanned)}</p> : null}
     {failedPlans.length > 0 ? <div role="alert" className="rounded-md border border-level-low/30 p-4 text-sm text-level-low-fg"><p className="font-medium">{m.hours.conflictTitle}: {formatInt(failedPlans.length)}</p><p className="mt-1">{failedPlans[0].plan.ok ? "" : failedPlans[0].plan.message}</p></div> : null}

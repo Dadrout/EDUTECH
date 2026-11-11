@@ -1,5 +1,6 @@
 "use client";
 
+import { AiPageInsight } from "@/components/ai/ai-insight";
 import * as React from "react";
 import Link from "next/link";
 import { AlertOctagon, AlertTriangle, Download, FileSpreadsheet, Info, RotateCcw } from "lucide-react";
@@ -377,6 +378,7 @@ export function HoursView({ scenarioOnly = false }: { scenarioOnly?: boolean }) 
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade"]} />
+        <AiPageInsight page="hours" />
         <HoursContent scenarioOnly={scenarioOnly} />
       </DataGate>
     </div>

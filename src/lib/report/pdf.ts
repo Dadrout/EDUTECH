@@ -5,6 +5,9 @@ import type { Messages } from "@/i18n/messages/ru";
 import type { Locale } from "@/i18n/locales";
 import type { QuestionStats } from "@/lib/analytics/skills";
 import type { TopicStats } from "@/lib/analytics/topics";
+import type { AiContext } from "@/lib/ai/context";
+import { describeEvidence } from "@/lib/ai/evidence";
+import type { AiReportInsights } from "@/lib/ai/schema";
 import type { DataQualityKind, Report } from "./report";
 
 export interface PdfReportOptions {
@@ -15,6 +18,8 @@ export interface PdfReportOptions {
   appendix?: boolean;
   questions?: QuestionStats[];
   topics?: TopicStats[];
+  /** AI-интерпретация (явно помечается); при отсутствии отчёт строится из аналитических выводов. */
+  ai?: { insights: AiReportInsights; context: AiContext; source: string };
 }
 
 export const PDF_PAGE_SIZE = [841.89, 595.28] as const;
@@ -276,6 +281,39 @@ export async function generateReportPdf(report: Report, options: PdfReportOption
     text(actions, m.ux.dataQuality, M, 185, 12, true);
     paragraph(actions, report.quality.map(item => item.kind === "synthetic" ? quality[item.kind] : `${quality[item.kind]}: ${n(item.count)}`).join(" · ") || (report.sample.answers ? m.ux.enoughData : m.reports.noData), M, 163, 750, 9, 4, false, C.muted);
     note(actions, `${m.reports.comparisonNote} ${m.reports.hoursNote}`, 94);
+
+    if (options.ai) {
+      // AI-интерпретация: короткие тезисы, ссылки на данные с числами движка.
+      const { insights, context, source } = options.ai;
+      const ev = (ids: string[]) => ids.map(id => context.evidence.find(e => e.id === id)).filter((e): e is NonNullable<typeof e> => Boolean(e))
+        .map(e => { const d = describeEvidence(e, m, t); return `${d.title}: ${d.values}`; }).join("; ");
+      const priority = (p: "high" | "medium" | "low") => m.ai.priority[p];
+      const aiPage = page(m.ai.reportTitle, `${m.ai.aiInPdf} · ${source}`);
+      text(aiPage, m.ai.executiveSummary, M, 452, 11, true, C.green);
+      paragraph(aiPage, insights.executiveSummary, M, 432, W - M * 2, 11, 5);
+      text(aiPage, m.ai.keyFindings, M, 340, 11, true, C.green);
+      insights.keyFindings.slice(0, 3).forEach((f, i) => {
+        const x = M + i * 261;
+        rect(aiPage, x, 100, 248, 225);
+        paragraph(aiPage, f.problem, x + 14, 306, 220, 11, 4, true);
+        paragraph(aiPage, f.significance, x + 14, 236, 220, 9, 6, false, C.muted);
+        paragraph(aiPage, `${m.ai.evidence}: ${ev(f.evidence)}`, x + 14, 142, 220, 7.5, 4, false, C.green);
+      });
+      note(aiPage, m.ai.disclaimer, 80);
+
+      const next = page(`${m.ai.reportTitle} · ${m.ai.recommendations}`, `${m.ai.aiInPdf} · ${source}`);
+      let y = 452;
+      for (const r of insights.recommendations.slice(0, 4)) {
+        text(next, priority(r.priority), M, y, 8.5, true, r.priority === "high" ? C.red : r.priority === "medium" ? C.amber : C.muted);
+        paragraph(next, r.action, M + 130, y, 620, 11, 2, true);
+        paragraph(next, `${m.ai.why}: ${r.why}`, M + 130, y - 30, 620, 9, 2, false, C.muted);
+        paragraph(next, `${m.ai.evidence}: ${ev(r.evidence)}`, M + 130, y - 53, 620, 7.5, 1, false, C.green);
+        line(next, M, y - 66, W - M, y - 66);
+        y -= 78;
+      }
+      text(next, m.ai.limitations, M, Math.min(y, 150), 11, true, C.green);
+      paragraph(next, insights.limitations.map(l => `• ${l}`).join("\n"), M, Math.min(y, 150) - 18, W - M * 2, 9, 4, false, C.muted);
+    }
   } else {
     const appendixSections: { title: string; headers: string[]; widths: number[]; rows: string[][] }[] = [];
     appendixSections.push({ title: m.ux.source, headers: [m.ux.evidence, m.ux.details], widths: [170, 600], rows: [

@@ -4,7 +4,8 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, PanelLeftClose, PanelLeftOpen, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
+import { Sparkles, BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, PanelLeftClose, PanelLeftOpen, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
+import { AiMethodologist } from "@/components/ai/ai-methodologist";
 import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { SettingsDialog } from "@/components/common/settings-dialog";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,17 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </nav>
       <div className="mt-auto grid gap-1 border-t border-sidebar-border pt-3">
+        <AiMethodologist
+          trigger={
+            <button
+              type="button"
+              className="sidebar-link flex min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
+            >
+              <Sparkles className="size-4" aria-hidden />
+              {m.ai.open}
+            </button>
+          }
+        />
         <SettingsDialog
           trigger={
             <button
@@ -164,6 +176,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
           <Logo compact />
+          <div className="flex items-center gap-1">
+          <AiMethodologist
+            trigger={
+              <Button variant="ghost" size="icon" aria-label={m.ai.open}>
+                <Sparkles />
+              </Button>
+            }
+          />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={m.nav.openMenu}>
@@ -175,6 +195,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <SidebarContent onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
+          </div>
         </header>
         <main id="main-content" tabIndex={-1} className={cn("mx-auto w-full px-4 py-6 outline-none sm:px-6 lg:px-9 lg:py-9", collapsed ? "max-w-none" : "max-w-[1480px]")}>{children}</main>
       </div>

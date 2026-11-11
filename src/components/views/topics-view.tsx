@@ -1,5 +1,6 @@
 "use client";
 
+import { AiPageInsight } from "@/components/ai/ai-insight";
 import * as React from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Info } from "lucide-react";
 import { DataGate } from "@/components/common/data-gate";
@@ -353,6 +354,7 @@ export function TopicsView() {
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade", "classId", "textbookId"]} />
+        <AiPageInsight page="topics" />
         <TopicsContent />
       </DataGate>
     </div>

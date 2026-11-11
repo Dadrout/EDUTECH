@@ -1,5 +1,6 @@
 "use client";
 
+import { AiPageInsight } from "@/components/ai/ai-insight";
 import * as React from "react";
 import { AlertTriangle, Info, ScanSearch } from "lucide-react";
 import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
@@ -377,6 +378,7 @@ export function SkillsView() {
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade", "classId", "textbookId", "topicKey"]} />
+        <AiPageInsight page="skills" />
         <SkillsContent />
       </DataGate>
     </div>

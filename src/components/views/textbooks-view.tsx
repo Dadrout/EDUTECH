@@ -1,5 +1,6 @@
 "use client";
 
+import { AiPageInsight } from "@/components/ai/ai-insight";
 import * as React from "react";
 import { AlertTriangle, CheckCircle2, CircleHelp, Info, Library, Scale, type LucideIcon } from "lucide-react";
 import { CoursePicker } from "@/components/common/course-picker";
@@ -457,6 +458,7 @@ export function TextbooksView() {
           </AlertDescription>
         </Alert>
         <FilterBar fields={["subject", "grade", "topicKey"]} />
+        <AiPageInsight page="textbooks" />
         <TextbooksContent />
       </DataGate>
     </div>
