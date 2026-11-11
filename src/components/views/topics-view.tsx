@@ -15,7 +15,10 @@ import { computeHeatmap } from "@/lib/analytics/heatmap";
 import { isProblemStatus } from "@/lib/analytics/stats";
 import { computeTopicStats, type TopicStats } from "@/lib/analytics/topics";
 import type { DifficultyStatus } from "@/lib/domain/types";
-import { formatCi, formatInt, formatPct } from "@/lib/format";
+import { formatCi, formatInt, formatPct, formatPercentValue } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
+import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 import { SyntheticNotice } from "./overview-view";
@@ -31,7 +34,7 @@ function sortTopics(rows: TopicStats[], key: SortKey, dir: 1 | -1): TopicStats[]
   const sorted = [...rows].sort((a, b) => {
     switch (key) {
       case "name":
-        return a.topicName.localeCompare(b.topicName, "ru");
+        return a.topicName.localeCompare(b.topicName, i18n().intl);
       case "students":
         return a.students - b.students;
       case "answers":
@@ -82,6 +85,7 @@ function SortHeader({
 
 function TopicsContent() {
   const { dataset, filters, config, courses, setFilters } = useReadyData();
+  const { m, t } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters, ["subject", "grade", "classId", "textbookId"]), [dataset.records, filters]);
   const topics = React.useMemo(() => computeTopicStats(records, config), [records, config]);
   const singleCourse = filters.subject !== null && filters.grade !== null;
@@ -126,14 +130,14 @@ function TopicsContent() {
   if (topics.length === 0) {
     return (
       <div className="rounded-xl border bg-card">
-        <EmptyState icon={Info} title="Нет данных для выбранных фильтров" description="Измените или сбросьте фильтры." />
+        <EmptyState icon={Info} title={m.common.noDataForFilters} description={m.common.changeFilters} />
       </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Фильтр по статусу сложности">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={m.topics.statusFilter}>
         <button
           type="button"
           onClick={() => setStatusFilter("all")}
@@ -143,7 +147,7 @@ function TopicsContent() {
             statusFilter === "all" ? "border-primary bg-accent text-foreground" : "bg-card hover:bg-secondary",
           )}
         >
-          Все темы <span className="tabular opacity-70">{topics.length}</span>
+          {m.topics.allTopics} <span className="tabular opacity-70">{topics.length}</span>
         </button>
         {STATUS_CHIPS.map((s) => {
           const meta = STATUS_META[s];
@@ -177,49 +181,43 @@ function TopicsContent() {
       </div>
 
       <Section
-        title="Успешность по темам"
-        description="Нажмите на полосу, чтобы открыть детализацию темы по классам, учебникам и заданиям."
+        title={m.topics.chartTitle}
+        description={m.topics.chartDescription}
         actions={
           <>
             <Tabs value={chartOrder} onValueChange={(v) => setChartOrder(v as "rate" | "program")}>
               <TabsList className="h-8">
-                <TabsTrigger value="rate">По успешности</TabsTrigger>
-                <TabsTrigger value="program">По программе</TabsTrigger>
+                <TabsTrigger value="rate">{m.topics.byRate}</TabsTrigger>
+                <TabsTrigger value="program">{m.topics.byProgram}</TabsTrigger>
               </TabsList>
             </Tabs>
             <MethodNote>
               <p>
-                <b>Успешность</b> = верные ответы / все ответы по заданиям темы.
+                <Rich text={m.topics.methodRate} />
               </p>
               <p>
-                <b>Уровень освоения</b>: высокий — от {config.thresholds.high}%, средний — от {config.thresholds.medium}%, низкий — ниже {config.thresholds.medium}%. Это начальная настройка MVP, её можно изменить.
+                <Rich text={t(m.topics.methodLevel, { high: formatPercentValue(config.thresholds.high), medium: formatPercentValue(config.thresholds.medium) })} />
               </p>
               <p>
-                <b>Сложная тема</b> — успешность ниже {config.thresholds.medium}%, и верхняя граница 95% доверительного интервала тоже ниже порога. Если интервал пересекает порог — «вероятно сложная».
+                <Rich text={t(m.topics.methodDifficult, { medium: formatPercentValue(config.thresholds.medium) })} />
               </p>
-              <p>
-                Вывод делается только при {config.minStudentsPerTopic}+ учениках и {config.minAnswersPerTopic}+ ответах.
-              </p>
+              <p>{t(m.topics.methodSample, { students: config.minStudentsPerTopic, answers: config.minAnswersPerTopic })}</p>
             </MethodNote>
           </>
         }
       >
         <div className="px-3 py-4 sm:px-5">
           {chartData.length > 0 ? (
-            <TopicBarChart data={chartData} thresholds={config.thresholds} onSelect={setSelectedKey} ariaLabel="Успешность по темам" />
+            <TopicBarChart data={chartData} thresholds={config.thresholds} onSelect={setSelectedKey} ariaLabel={m.topics.chartTitle} />
           ) : (
-            <EmptyState icon={Info} title="Нет тем с выбранным статусом" />
+            <EmptyState icon={Info} title={m.topics.noTopicsWithStatus} />
           )}
         </div>
       </Section>
 
       <Section
-        title="Тепловая карта: классы × темы"
-        description={
-          singleCourse
-            ? "Успешность каждого класса по каждой теме. Красный — ниже нормы, синий — выше; середина шкалы — между порогами среднего и высокого уровня."
-            : "Тепловая карта строится в пределах одного предмета и параллели: темы разных классов не совпадают."
-        }
+        title={m.topics.heatmapTitle}
+        description={singleCourse ? m.topics.heatmapDescription : m.topics.heatmapNeedsCourse}
       >
         {heatmap && heatmap.columns.length > 0 ? (
           <>
@@ -239,7 +237,7 @@ function TopicsContent() {
                   onClick={() => setFilters({ subject: c.subject, grade: c.grade })}
                   className="inline-flex items-center gap-1 rounded-md border bg-card px-3 py-1.5 text-[13px] font-medium outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/30"
                 >
-                  {c.subject} · {c.grade} класс
+                  {t(m.units.courseDot, { subject: c.subject, grade: c.grade })}
                   <ChevronRight className="size-3.5 text-muted-foreground" aria-hidden />
                 </button>
               ))}
@@ -248,74 +246,74 @@ function TopicsContent() {
       </Section>
 
       <Section
-        title="Таблица тем"
-        description={`${visible.length} из ${topics.length} тем. Проблемные разделы выделены; сортировка — по заголовкам столбцов.`}
+        title={m.topics.tableTitle}
+        description={t(m.topics.tableDescription, { visible: visible.length, total: topics.length })}
       >
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-[13px]">
             <thead className="border-b bg-muted/40">
               <tr>
-                <SortHeader label="Тема" k="name" sort={sort} onSort={onSort} className="pl-5" />
-                <SortHeader label="Учеников" k="students" sort={sort} onSort={onSort} align="right" />
-                <SortHeader label="Ответов" k="answers" sort={sort} onSort={onSort} align="right" />
-                <SortHeader label="Заданий" k="questions" sort={sort} onSort={onSort} align="right" />
-                <SortHeader label="Успешность" k="rate" sort={sort} onSort={onSort} />
-                <th className="h-9 px-3 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">95% ДИ</th>
-                <th className="h-9 px-3 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">Уровень</th>
-                <SortHeader label="Статус" k="status" sort={sort} onSort={onSort} className="pr-5" />
+                <SortHeader label={m.topics.colTopic} k="name" sort={sort} onSort={onSort} className="pl-5" />
+                <SortHeader label={m.topics.colStudents} k="students" sort={sort} onSort={onSort} align="right" />
+                <SortHeader label={m.topics.colAnswers} k="answers" sort={sort} onSort={onSort} align="right" />
+                <SortHeader label={m.topics.colQuestions} k="questions" sort={sort} onSort={onSort} align="right" />
+                <SortHeader label={m.topics.colRate} k="rate" sort={sort} onSort={onSort} />
+                <th className="h-9 px-3 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">{m.units.ci}</th>
+                <th className="h-9 px-3 text-left text-xs font-medium whitespace-nowrap text-muted-foreground">{m.topics.colLevel}</th>
+                <SortHeader label={m.topics.colStatus} k="status" sort={sort} onSort={onSort} className="pr-5" />
               </tr>
             </thead>
             <tbody className="divide-y">
-              {visible.map((t) => {
-                const problem = isProblemStatus(t.status);
+              {visible.map((row) => {
+                const problem = isProblemStatus(row.status);
                 return (
                   <tr
-                    key={t.key}
+                    key={row.key}
                     className={cn("cursor-pointer transition-colors hover:bg-muted/50", problem && "bg-level-low-bg/45 hover:bg-level-low-bg/70")}
-                    onClick={() => setSelectedKey(t.key)}
+                    onClick={() => setSelectedKey(row.key)}
                   >
                     <td className="py-2.5 pr-3 pl-5">
-                      <button type="button" className="text-left font-medium outline-none hover:underline focus-visible:underline" onClick={() => setSelectedKey(t.key)}>
-                        {t.topicName}
+                      <button type="button" className="text-left font-medium outline-none hover:underline focus-visible:underline" onClick={() => setSelectedKey(row.key)}>
+                        {row.topicName}
                       </button>
                       <div className="text-xs text-muted-foreground">
-                        {t.subject} · {t.grade} кл. · {t.topicId}
+                        {row.subject} · {t(m.units.gradeShort, { grade: row.grade })} · {row.topicId}
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-right tabular">
                       <span className="inline-flex items-center gap-1">
-                        {!t.sufficient ? (
+                        {!row.sufficient ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <AlertTriangle className="size-3.5 text-level-medium-fg" aria-label="Недостаточно данных" />
+                              <AlertTriangle className="size-3.5 text-level-medium-fg" aria-label={m.topics.insufficientData} />
                             </TooltipTrigger>
-                            <TooltipContent>{t.sampleNote}</TooltipContent>
+                            <TooltipContent>{row.sampleNote}</TooltipContent>
                           </Tooltip>
                         ) : null}
-                        {formatInt(t.students)}
+                        {formatInt(row.students)}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular">{formatInt(t.answers)}</td>
-                    <td className="px-3 py-2.5 text-right tabular">{formatInt(t.questions)}</td>
+                    <td className="px-3 py-2.5 text-right tabular">{formatInt(row.answers)}</td>
+                    <td className="px-3 py-2.5 text-right tabular">{formatInt(row.questions)}</td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-12 font-semibold tabular">{formatPct(t.rate)}</span>
+                        <span className="w-12 font-semibold tabular">{formatPct(row.rate)}</span>
                         <RateBar
-                          rate={t.rate}
-                          ciLow={t.estimate?.ciLow}
-                          ciHigh={t.estimate?.ciHigh}
-                          color={LEVEL_META[t.level].color}
+                          rate={row.rate}
+                          ciLow={row.estimate?.ciLow}
+                          ciHigh={row.estimate?.ciHigh}
+                          color={LEVEL_META[row.level].color}
                           thresholds={config.thresholds}
                           className="w-28"
                         />
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-xs whitespace-nowrap text-muted-foreground tabular">{formatCi(t.estimate?.ciLow, t.estimate?.ciHigh)}</td>
+                    <td className="px-3 py-2.5 text-xs whitespace-nowrap text-muted-foreground tabular">{formatCi(row.estimate?.ciLow, row.estimate?.ciHigh)}</td>
                     <td className="px-3 py-2.5">
-                      <LevelBadge level={t.level} />
+                      <LevelBadge level={row.level} />
                     </td>
                     <td className="py-2.5 pr-5 pl-3">
-                      <StatusBadge status={t.status} />
+                      <StatusBadge status={row.status} />
                     </td>
                   </tr>
                 );
@@ -331,12 +329,10 @@ function TopicsContent() {
 }
 
 export function TopicsView() {
+  const { m } = useI18n();
   return (
     <div className="grid grid-cols-1 gap-5">
-      <PageHeader
-        title="Анализ освоения тем"
-        description="Результаты тестирования по каждой теме учебной программы: объём выборки, успешность с доверительным интервалом, уровень освоения и статус сложности."
-      />
+      <PageHeader title={m.topics.title} description={m.topics.description} />
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade", "classId", "textbookId"]} />

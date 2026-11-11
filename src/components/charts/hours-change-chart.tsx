@@ -5,6 +5,7 @@ import { LEVEL_META } from "@/components/common/levels";
 import { Legend } from "@/components/common/blocks";
 import type { HoursRow } from "@/lib/analytics/hours";
 import { formatHours, formatHoursDelta, formatPct } from "@/lib/format";
+import { i18n } from "@/i18n/core";
 
 const UP = "var(--series-1)";
 const DOWN = "var(--series-2)";
@@ -17,7 +18,7 @@ export function HoursChangeChart({ rows }: { rows: HoursRow[] }) {
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.changeHours)));
   return (
     <div className="grid gap-3">
-      <div role="img" aria-label="Изменение учебных часов по темам" className="grid gap-y-1">
+      <div role="img" aria-label={i18n().m.charts.hoursAria} className="grid gap-y-1">
         {rows.map((r) => {
           const share = Math.abs(r.changeHours) / maxAbs;
           const meta = LEVEL_META[r.level];
@@ -46,15 +47,15 @@ export function HoursChangeChart({ rows }: { rows: HoursRow[] }) {
                   />
                 ) : null}
               </div>
-              <div className="text-right text-[13px] font-semibold tabular">{r.changeHours === 0 ? <span className="font-normal text-muted-foreground">0 ч</span> : formatHoursDelta(r.changeHours)}</div>
+              <div className="text-right text-[13px] font-semibold tabular">{r.changeHours === 0 ? <span className="font-normal text-muted-foreground">{formatHours(0)}</span> : formatHoursDelta(r.changeHours)}</div>
             </div>
           );
         })}
       </div>
       <Legend
         items={[
-          { label: "Тема получает часы", color: UP },
-          { label: "Тема отдаёт часы", color: DOWN },
+          { label: i18n().m.charts.hoursGain, color: UP },
+          { label: i18n().m.charts.hoursGive, color: DOWN },
         ]}
       />
     </div>

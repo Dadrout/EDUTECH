@@ -16,27 +16,47 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { filterRecords, naturalCompare } from "@/lib/analytics/filters";
 import { compareTextbooks, type TopicComparisonStatus, type VerdictLevel } from "@/lib/analytics/textbooks";
-import { countLabel, formatInt, formatPct, formatPp, formatPpRange, shortTextbookName } from "@/lib/format";
+import { formatInt, formatPct, formatPercentValue, formatPp, formatPpRange, quote, shortTextbookName } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
+import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 import { SyntheticNotice } from "./overview-view";
 
-const VERDICT_META: Record<VerdictLevel, { label: string; variant: "info" | "medium" | "none"; Icon: LucideIcon }> = {
-  consistent: { label: "Различие устойчиво", variant: "info", Icon: CheckCircle2 },
-  preliminary: { label: "Предварительный вывод", variant: "medium", Icon: AlertTriangle },
-  no_difference: { label: "Различие не подтверждено", variant: "none", Icon: Scale },
-  insufficient: { label: "Недостаточно данных", variant: "none", Icon: CircleHelp },
+// Подписи — геттеры, чтобы читать словарь текущего языка.
+const verdictMeta = (level: VerdictLevel, variant: "info" | "medium" | "none", Icon: LucideIcon) => ({
+  get label() {
+    return i18n().m.textbooks.verdict[level];
+  },
+  variant,
+  Icon,
+});
+
+const VERDICT_META: Record<VerdictLevel, { readonly label: string; variant: "info" | "medium" | "none"; Icon: LucideIcon }> = {
+  consistent: verdictMeta("consistent", "info", CheckCircle2),
+  preliminary: verdictMeta("preliminary", "medium", AlertTriangle),
+  no_difference: verdictMeta("no_difference", "none", Scale),
+  insufficient: verdictMeta("insufficient", "none", CircleHelp),
 };
 
-const TOPIC_STATUS: Record<TopicComparisonStatus, { label: string; variant: "high" | "none" | "medium" }> = {
-  comparable: { label: "Сопоставима", variant: "high" },
-  no_common_questions: { label: "Разные задания", variant: "medium" },
-  missing_textbook: { label: "Нет данных", variant: "none" },
-  insufficient_data: { label: "Мало учеников", variant: "none" },
+const topicStatus = (status: TopicComparisonStatus, variant: "high" | "none" | "medium") => ({
+  get label() {
+    return i18n().m.textbooks.topicStatus[status];
+  },
+  variant,
+});
+
+const TOPIC_STATUS: Record<TopicComparisonStatus, { readonly label: string; variant: "high" | "none" | "medium" }> = {
+  comparable: topicStatus("comparable", "high"),
+  no_common_questions: topicStatus("no_common_questions", "medium"),
+  missing_textbook: topicStatus("missing_textbook", "none"),
+  insufficient_data: topicStatus("insufficient_data", "none"),
 };
 
 function Comparison({ subject, grade }: { subject: string; grade: number }) {
   const { dataset, filters, config } = useReadyData();
+  const { m, t, plural } = useI18n();
   const courseRecords = React.useMemo(() => filterRecords(dataset.records, filters, ["subject", "grade"]), [dataset.records, filters]);
 
   // Все учебники курса; цвет закреплён за учебником по этому порядку.
@@ -62,8 +82,11 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
       <div className="rounded-xl border bg-card">
         <EmptyState
           icon={Library}
-          title="Сравнивать не с чем"
-          description={`В параллели «${subject}, ${grade} класс» используется только один учебник${allTextbooks[0] ? ` — ${allTextbooks[0].name}` : ""}. Выберите другой предмет или параллель.`}
+          title={m.textbooks.nothingTitle}
+          description={t(m.textbooks.nothingDescription, {
+            course: quote(t(m.units.course, { subject, grade })),
+            textbook: allTextbooks[0] ? t(m.textbooks.nothingTextbook, { name: allTextbooks[0].name }) : "",
+          })}
         />
       </div>
     );
@@ -79,7 +102,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
     <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-col gap-4 rounded-xl border bg-card px-5 py-4 lg:flex-row lg:items-end lg:justify-between">
         <fieldset>
-          <legend className="mb-2 text-xs font-medium text-muted-foreground">Учебники для сравнения</legend>
+          <legend className="mb-2 text-xs font-medium text-muted-foreground">{m.textbooks.compareLabel}</legend>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             {allTextbooks.map((t) => {
               const checked = selected.includes(t.id);
@@ -99,11 +122,11 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
         </fieldset>
         <div className="flex min-w-0 flex-col gap-1 lg:w-80">
           <label htmlFor="reference" className="text-xs font-medium text-muted-foreground">
-            Базовый учебник (с ним сравниваются остальные)
+            {m.textbooks.referenceLabel}
           </label>
           <Select value={reference} onValueChange={setReferenceId} disabled={selectedIds.length < 2}>
             <SelectTrigger id="reference" size="sm" className="w-full">
-              <SelectValue placeholder="Выберите" />
+              <SelectValue placeholder={m.textbooks.choose} />
             </SelectTrigger>
             <SelectContent>
               {selectedIds.map((id) => (
@@ -118,28 +141,32 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
 
       {selectedIds.length < 2 ? (
         <div className="rounded-xl border bg-card">
-          <EmptyState icon={Library} title="Выберите не менее двух учебников" description="Сравнение строится между выбранными учебниками одной параллели." />
+          <EmptyState icon={Library} title={m.textbooks.selectTwoTitle} description={m.textbooks.selectTwoDescription} />
         </div>
       ) : (
         <>
           <Section
-            title="Вывод по сравнению"
-            description={`${countLabel(result.comparableTopicCount, ["сопоставимая тема", "сопоставимые темы", "сопоставимых тем"])} из ${result.topics.length} · ${countLabel(result.commonQuestionCount, ["общее задание", "общих задания", "общих заданий"])}`}
+            title={m.textbooks.verdictTitle}
+            description={t(m.textbooks.verdictDescription, {
+              topics: plural(m.textbooks.comparableTopics, result.comparableTopicCount),
+              total: result.topics.length,
+              questions: plural(m.textbooks.commonQuestions, result.commonQuestionCount),
+            })}
             actions={
-              <MethodNote title="Как сравниваются учебники">
+              <MethodNote title={m.textbooks.methodTitle}>
                 <p>
-                  1. Сравниваются только ученики <b>одного предмета и одной параллели</b>.
+                  <Rich text={m.textbooks.method1} />
                 </p>
                 <p>
-                  2. По каждой теме берутся только <b>общие задания</b>, которые выполняли ученики всех выбранных учебников. Темы без достаточного числа общих заданий ({config.minCommonQuestions}+) или учеников ({config.minStudentsPerGroup}+) исключаются.
+                  <Rich text={t(m.textbooks.method2, { questions: config.minCommonQuestions, students: config.minStudentsPerGroup })} />
                 </p>
                 <p>
-                  3. Итог — доля верных ответов на общих заданиях сопоставимых тем. Для разницы строится <b>95% доверительный интервал</b> с учётом того, что ответы одного ученика связаны.
+                  <Rich text={m.textbooks.method3} />
                 </p>
                 <p>
-                  4. <b>Устойчивым</b> различие считается, только если интервал не включает ноль, каждый учебник используется минимум в двух классах и все классы одного учебника лучше всех классов другого.
+                  <Rich text={m.textbooks.method4} />
                 </p>
-                <p>Даже устойчивое различие — это связь, а не доказательство причины.</p>
+                <p>{m.textbooks.method5}</p>
               </MethodNote>
             }
           >
@@ -156,7 +183,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                       </Badge>
                       <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <span className="size-2 rounded-full" style={{ background: tb?.color }} aria-hidden />
-                        {tb?.short} относительно {refTb?.short}
+                        {t(m.textbooks.relativeTo, { a: tb?.short ?? "", b: refTb?.short ?? "" })}
                       </span>
                     </div>
                     <p className="text-sm leading-relaxed">{v.summary}</p>
@@ -178,7 +205,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
               <div className="border-t px-5 py-4">
                 <Alert variant="warning">
                   <AlertTriangle aria-hidden />
-                  <AlertTitle>Ограничения сопоставимости</AlertTitle>
+                  <AlertTitle>{m.textbooks.limitsTitle}</AlertTitle>
                   <AlertDescription>
                     {result.warnings.map((w) => (
                       <p key={w}>{w}</p>
@@ -190,17 +217,17 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
           </Section>
 
           <div className="grid grid-cols-1 items-start gap-5 2xl:grid-cols-2">
-            <Section title="Успешность на общих заданиях" description="Точка — оценка, линия — 95% доверительный интервал.">
+            <Section title={m.textbooks.rateTitle} description={m.textbooks.rateDescription}>
               <div className="px-5 py-4">
                 <ForestPlot
-                  ariaLabel="Успешность учебников на общих заданиях"
+                  ariaLabel={m.textbooks.rateAria}
                   domain={[0, 1]}
                   ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]}
-                  tickFormat={(v) => `${Math.round(v * 100)}%`}
+                  tickFormat={(v) => formatPercentValue(Math.round(v * 100))}
                   rows={result.groups.map((g) => ({
                     id: g.textbookId,
                     label: tbById.get(g.textbookId)?.short ?? g.textbookName,
-                    sublabel: `${formatInt(g.comparableStudents)} уч. · ${g.classes.join(", ")}`,
+                    sublabel: t(m.textbooks.groupSub, { students: formatInt(g.comparableStudents), classes: g.classes.join(m.common.listSep) }),
                     color: tbById.get(g.textbookId)?.color ?? seriesColor(0),
                     value: g.comparable?.rate ?? null,
                     low: g.comparable?.ciLow ?? null,
@@ -211,10 +238,10 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                 />
               </div>
             </Section>
-            <Section title={`Разница с базовым учебником${refTb ? ` (${refTb.short})` : ""}`} description="Если интервал пересекает ноль, различие не подтверждено.">
+            <Section title={refTb ? t(m.textbooks.diffTitleWith, { name: refTb.short }) : m.textbooks.diffTitle} description={m.textbooks.diffDescription}>
               <div className="px-5 py-4">
                 <ForestPlot
-                  ariaLabel="Разница с базовым учебником"
+                  ariaLabel={m.textbooks.diffAria}
                   domain={[-diffBound, diffBound]}
                   ticks={diffTicks}
                   tickFormat={(v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.round(Math.abs(v) * 100)}`}
@@ -236,17 +263,17 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
             </Section>
           </div>
 
-          <Section title="Группы учеников" description="Объём выборки и результаты отдельных классов. Успешность по всем заданиям приведена справочно: наборы заданий у групп могут различаться.">
+          <Section title={m.textbooks.groupsTitle} description={m.textbooks.groupsDescription}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
                   <tr>
-                    <th className="h-9 px-5 text-left font-medium">Учебник</th>
-                    <th className="h-9 px-3 text-right font-medium">Учеников</th>
-                    <th className="h-9 px-3 text-right font-medium">Ответов</th>
-                    <th className="h-9 px-3 text-right font-medium">По всем заданиям</th>
-                    <th className="h-9 px-3 text-right font-medium">На общих заданиях</th>
-                    <th className="h-9 px-5 text-left font-medium">По классам (общие задания)</th>
+                    <th className="h-9 px-5 text-left font-medium">{m.textbooks.colTextbook}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.textbooks.colStudents}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.textbooks.colAnswers}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.textbooks.colAllQuestions}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.textbooks.colCommonQuestions}</th>
+                    <th className="h-9 px-5 text-left font-medium">{m.textbooks.colByClass}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -269,7 +296,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                               {c.classId} · {formatPct(c.estimate?.rate, 0)}
                             </span>
                           ))}
-                          {g.classes.length === 1 ? <Badge variant="medium">один класс</Badge> : null}
+                          {g.classes.length === 1 ? <Badge variant="medium">{m.textbooks.oneClass}</Badge> : null}
                         </div>
                       </td>
                     </tr>
@@ -280,7 +307,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
           </Section>
 
           {comparableTopics.length > 0 ? (
-            <Section title="Результаты по темам" description="Только сопоставимые темы, только общие задания.">
+            <Section title={m.textbooks.topicsChartTitle} description={m.textbooks.topicsChartDescription}>
               <div className="px-3 py-4 sm:px-5">
                 <TextbookTopicChart
                   series={selectedIds.map((id) => ({ id, name: tbById.get(id)?.short ?? id, color: tbById.get(id)?.color ?? seriesColor(0) }))}
@@ -295,14 +322,14 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
             </Section>
           ) : null}
 
-          <Section title="Таблица по темам" description="Разница — относительно базового учебника, на общих заданиях; * — интервал не включает ноль.">
+          <Section title={m.textbooks.tableTitle} description={m.textbooks.tableDescription}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
                   <tr>
-                    <th className="h-9 px-5 text-left font-medium">Тема</th>
-                    <th className="h-9 px-3 text-left font-medium">Сопоставимость</th>
-                    <th className="h-9 px-3 text-right font-medium">Общих заданий</th>
+                    <th className="h-9 px-5 text-left font-medium">{m.textbooks.colTopic}</th>
+                    <th className="h-9 px-3 text-left font-medium">{m.textbooks.colComparability}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.textbooks.colCommon}</th>
                     {selectedIds.map((id) => (
                       <th key={id} className="h-9 px-3 text-right font-medium">
                         <span className="inline-flex items-center gap-1.5">
@@ -315,20 +342,20 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                       .filter((id) => id !== reference)
                       .map((id) => (
                         <th key={`d-${id}`} className="h-9 px-3 text-right font-medium">
-                          Разница: {tbById.get(id)?.short}
+                          {t(m.textbooks.colDiff, { name: tbById.get(id)?.short ?? id })}
                         </th>
                       ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {result.topics.map((t) => {
-                    const st = TOPIC_STATUS[t.status];
-                    const comparable = t.status === "comparable";
+                  {result.topics.map((row) => {
+                    const st = TOPIC_STATUS[row.status];
+                    const comparable = row.status === "comparable";
                     return (
-                      <tr key={t.topicKey} className={cn(!comparable && "bg-muted/30")}>
+                      <tr key={row.topicKey} className={cn(!comparable && "bg-muted/30")}>
                         <td className="max-w-80 px-5 py-2.5">
-                          <div className="font-medium">{t.topicName}</div>
-                          {t.notes.map((n) => (
+                          <div className="font-medium">{row.topicName}</div>
+                          {row.notes.map((n) => (
                             <div key={n} className="mt-0.5 text-xs leading-snug text-muted-foreground">
                               {n}
                             </div>
@@ -338,17 +365,17 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                           <Badge variant={st.variant}>{st.label}</Badge>
                         </td>
                         <td className="px-3 py-2.5 text-right tabular">
-                          {t.commonQuestions}
-                          <span className="text-muted-foreground"> / {t.unionQuestions}</span>
+                          {row.commonQuestions}
+                          <span className="text-muted-foreground"> / {row.unionQuestions}</span>
                         </td>
                         {selectedIds.map((id) => {
-                          const cell = t.cells[id];
+                          const cell = row.cells[id];
                           return (
                             <td key={id} className="px-3 py-2.5 text-right tabular">
                               {cell ? (
                                 <>
                                   <div className={cn("font-medium", !comparable && "text-muted-foreground")}>{comparable ? formatPct(cell.estimate?.rate) : formatPct(cell.rawRate)}</div>
-                                  <div className="text-[11px] text-muted-foreground">{comparable ? `${formatInt(cell.students)} уч.` : "по своим заданиям"}</div>
+                                  <div className="text-[11px] text-muted-foreground">{comparable ? t(m.units.studentsShort, { n: cell.students }) : m.textbooks.ownQuestions}</div>
                                 </>
                               ) : (
                                 <span className="text-muted-foreground">—</span>
@@ -359,7 +386,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                         {selectedIds
                           .filter((id) => id !== reference)
                           .map((id) => {
-                            const d = t.diffs[id];
+                            const d = row.diffs[id];
                             return (
                               <td key={`d-${id}`} className="px-3 py-2.5 text-right tabular">
                                 {d ? (
@@ -391,30 +418,26 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
 
 function TextbooksContent() {
   const { filters } = useReadyData();
+  const { m } = useI18n();
   if (filters.subject === null || filters.grade === null) {
-    return <CoursePicker reason="Учебники сравниваются только внутри одного предмета и одной параллели, чтобы группы учеников были сопоставимы." />;
+    return <CoursePicker reason={m.textbooks.pickerReason} />;
   }
   // key сбрасывает выбор учебников при смене курса.
   return <Comparison key={`${filters.subject}|${filters.grade}`} subject={filters.subject} grade={filters.grade} />;
 }
 
 export function TextbooksView() {
+  const { m } = useI18n();
   return (
     <div className="grid grid-cols-1 gap-5">
-      <PageHeader
-        title="Сравнение учебников"
-        description="Результаты учеников, занимающихся по разным учебникам, на одинаковых заданиях. Различия показываются вместе с размером выборки и статистической погрешностью."
-      />
+      <PageHeader title={m.textbooks.title} description={m.textbooks.description} />
       <DataGate>
         <SyntheticNotice />
         <Alert variant="default">
           <Info aria-hidden />
-          <AlertTitle>Сравнение показывает связь, а не причину</AlertTitle>
+          <AlertTitle>{m.textbooks.causalityTitle}</AlertTitle>
           <AlertDescription>
-            <p>
-              Более высокий средний результат не доказывает, что учебник эффективнее: различия могут объясняться подготовкой учеников, работой учителя или условиями тестирования. Используйте выводы как основание для
-              дальнейшего изучения, а не как окончательное решение.
-            </p>
+            <p>{m.textbooks.causalityText}</p>
           </AlertDescription>
         </Alert>
         <FilterBar fields={["subject", "grade", "topicKey"]} />

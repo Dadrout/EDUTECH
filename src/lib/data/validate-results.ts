@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n/core";
 import type { AnswerRecord } from "@/lib/domain/types";
 import { questionKeyOf, topicKeyOf } from "@/lib/domain/types";
 import { IssueCollector, majority, previewIndices, type TablePreview, type ValidationIssue } from "./issues";
@@ -80,17 +81,17 @@ export function validateResults(table: RawTable): ResultsValidation {
   const gradeDerived = mapping.indexOf.grade < 0;
 
   if (mapping.missingRequired.length > 0) {
-    fatal.push(`Не найдены обязательные колонки: ${mapping.missingRequired.join(", ")}.`);
+    fatal.push(i18n().t(i18n().m.validation.missingColumns, { columns: mapping.missingRequired.join(", ") }));
   }
-  if (table.rows.length === 0) fatal.push("В файле нет строк с данными.");
+  if (table.rows.length === 0) fatal.push(i18n().m.validation.noRows);
   if (mapping.duplicateHeaders.length > 0) {
-    issues.note("warning", "dup-headers", `Колонки встречаются несколько раз, используется первая: ${mapping.duplicateHeaders.join(", ")}.`);
+    issues.note("warning", "dup-headers", i18n().t(i18n().m.validation.duplicateHeaders, { columns: mapping.duplicateHeaders.join(", ") }));
   }
   if (mapping.unknownHeaders.length > 0) {
-    issues.note("warning", "unknown-headers", `Колонки не используются в анализе: ${mapping.unknownHeaders.join(", ")}.`, mapping.unknownHeaders.length);
+    issues.note("warning", "unknown-headers", i18n().t(i18n().m.validation.unknownHeadersResults, { columns: mapping.unknownHeaders.join(", ") }), mapping.unknownHeaders.length);
   }
   if (gradeDerived && fatal.length === 0) {
-    issues.note("warning", "grade-derived", "Колонка grade не найдена: параллель определяется по началу class_id (например, «7А» → 7).");
+    issues.note("warning", "grade-derived", i18n().m.validation.gradeDerived);
   }
 
   const previewHeaders = RESULT_COLUMNS.map((c) => c.name);
@@ -123,7 +124,7 @@ export function validateResults(table: RawTable): ResultsValidation {
     const required: ResultColumnKey[] = ["studentId", "classId", "subject", "topicId", "topicName", "textbookId", "textbookName", "testId", "questionId", "isCorrect", "testDate"];
     for (const key of required) {
       if (get(row, key) === "") {
-        issues.add("error", `empty-${key}`, `Пустое значение в обязательной колонке ${COLUMN_LABEL[key]}.`, rowNumber);
+        issues.add("error", `empty-${key}`, i18n().t(i18n().m.validation.emptyValue, { column: COLUMN_LABEL[key] }), rowNumber);
         bad = true;
       }
     }
@@ -134,13 +135,13 @@ export function validateResults(table: RawTable): ResultsValidation {
     if (gradeRaw !== "") {
       grade = parseGrade(gradeRaw);
       if (grade === null) {
-        issues.add("error", "bad-grade", "Некорректная параллель (grade): ожидается целое число от 1 до 12.", rowNumber);
+        issues.add("error", "bad-grade", i18n().m.validation.badGradeResults, rowNumber);
         bad = true;
       }
     } else if (classId !== "") {
       grade = gradeFromClassId(classId);
       if (grade === null) {
-        issues.add("error", "no-grade", "Не удалось определить параллель: заполните grade или начните class_id с номера класса.", rowNumber);
+        issues.add("error", "no-grade", i18n().m.validation.noGrade, rowNumber);
         bad = true;
       }
     }
@@ -148,14 +149,14 @@ export function validateResults(table: RawTable): ResultsValidation {
     const correctRaw = get(row, "isCorrect");
     const isCorrect = correctRaw === "" ? null : parseBoolean(correctRaw);
     if (correctRaw !== "" && isCorrect === null) {
-      issues.add("error", "bad-correct", "Некорректное значение is_correct: допустимы 1/0, true/false, да/нет.", rowNumber);
+      issues.add("error", "bad-correct", i18n().m.validation.badCorrect, rowNumber);
       bad = true;
     }
 
     const dateRaw = get(row, "testDate");
     const testDate = dateRaw === "" ? null : parseDate(dateRaw);
     if (dateRaw !== "" && testDate === null) {
-      issues.add("error", "bad-date", "Некорректная дата test_date: ожидается ГГГГ-ММ-ДД или ДД.ММ.ГГГГ.", rowNumber);
+      issues.add("error", "bad-date", i18n().m.validation.badDate, rowNumber);
       bad = true;
     }
 
@@ -196,7 +197,7 @@ export function validateResults(table: RawTable): ResultsValidation {
   for (const c of candidates) {
     const m = classGrades.get(c.record.classId)!;
     if (m.size > 1 && c.record.grade !== majority(m)) {
-      issues.add("error", "class-grade", "Класс указан с разными параллелями — строки с нетипичной параллелью исключаются.", c.rowNumber);
+      issues.add("error", "class-grade", i18n().m.validation.classGrade, c.rowNumber);
       rowError[c.index] = true;
     }
   }
@@ -218,7 +219,7 @@ export function validateResults(table: RawTable): ResultsValidation {
     if (rowError[c.index]) continue;
     const m = questionTopics.get(questionKeyOf(c.record))!;
     if (m.size > 1 && topicKeyOf(c.record) !== majority(m)) {
-      issues.add("error", "question-topic", "Одно и то же задание (test_id + question_id) отнесено к разным темам — строки исключаются.", c.rowNumber);
+      issues.add("error", "question-topic", i18n().m.validation.questionTopic, c.rowNumber);
       rowError[c.index] = true;
     }
   }
@@ -238,12 +239,12 @@ export function validateResults(table: RawTable): ResultsValidation {
     const values = new Set(list.map((c) => c.record.isCorrect));
     if (values.size > 1) {
       for (const c of list) {
-        issues.add("error", "conflict", "Противоречивые дубликаты: один ученик, тест и задание с разными результатами — все такие строки исключаются.", c.rowNumber);
+        issues.add("error", "conflict", i18n().m.validation.conflictResults, c.rowNumber);
         rowError[c.index] = true;
       }
     } else {
       for (const c of list.slice(1)) {
-        issues.add("warning", "duplicate", "Точные дубликаты ответов удалены (учтена первая строка).", c.rowNumber);
+        issues.add("warning", "duplicate", i18n().m.validation.duplicateResults, c.rowNumber);
         duplicateIdx.add(c.index);
       }
     }
@@ -268,7 +269,7 @@ export function validateResults(table: RawTable): ResultsValidation {
     if (tn.size > 1) {
       const name = majority(tn)!;
       if (c.record.topicName !== name) {
-        issues.add("warning", "topic-name", "У одной темы разные названия — использовано наиболее частое.", c.rowNumber);
+        issues.add("warning", "topic-name", i18n().m.validation.topicName, c.rowNumber);
         c.record = { ...c.record, topicName: name };
       }
     }
@@ -276,7 +277,7 @@ export function validateResults(table: RawTable): ResultsValidation {
     if (bn.size > 1) {
       const name = majority(bn)!;
       if (c.record.textbookName !== name) {
-        issues.add("warning", "textbook-name", "У одного учебника разные названия — использовано наиболее частое.", c.rowNumber);
+        issues.add("warning", "textbook-name", i18n().m.validation.textbookName, c.rowNumber);
         c.record = { ...c.record, textbookName: name };
       }
     }
@@ -296,14 +297,14 @@ export function validateResults(table: RawTable): ResultsValidation {
   }
   const multiClass = [...studentClasses.values()].filter((s) => s.size > 1).length;
   if (multiClass > 0) {
-    issues.note("warning", "student-class", `${multiClass} учеников встречаются в нескольких классах — проверьте идентификаторы.`, multiClass);
+    issues.note("warning", "student-class", i18n().t(i18n().m.validation.studentClass, { n: multiClass }), multiClass);
   }
   const multiBook = [...studentTextbooks.values()].filter((s) => s.size > 1).length;
   if (multiBook > 0) {
     issues.note(
       "warning",
       "student-textbook",
-      `${multiBook} учеников по одному предмету связаны с несколькими учебниками — это снижает корректность сравнения учебников.`,
+      i18n().t(i18n().m.validation.studentTextbook, { n: multiBook }),
       multiBook,
     );
   }
@@ -330,7 +331,7 @@ export function validateResults(table: RawTable): ResultsValidation {
           cells: RESULT_COLUMNS.map((col) => {
             if (col.key === "grade" && gradeDerived) {
               const g = gradeFromClassId(get(row, "classId"));
-              return g === null ? "" : `${g} (из class_id)`;
+              return g === null ? "" : i18n().t(i18n().m.validation.gradeFromClass, { grade: g });
             }
             return get(row, col.key);
           }),

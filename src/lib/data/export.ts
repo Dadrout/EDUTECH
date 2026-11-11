@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n/core";
 import Papa from "papaparse";
 import { CURRICULUM_COLUMNS, RESULT_COLUMNS } from "./schema";
 
@@ -20,23 +21,33 @@ export function downloadCsv(filename: string, csv: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/** Пример строк шаблона — на языке интерфейса (значения из описания колонок). */
 export function resultsTemplateCsv(): string {
+  const ex = i18n().m.schema.results;
+  const row = (question: string, correct: number) => [
+    ex.studentId.example,
+    ex.classId.example,
+    7,
+    ex.subject.example,
+    ex.topicId.example,
+    ex.topicName.example,
+    ex.textbookId.example,
+    ex.textbookName.example,
+    ex.testId.example,
+    question,
+    correct,
+    "2026-02-12",
+  ];
   return toCsv(
     RESULT_COLUMNS.map((c) => c.name),
-    [
-      ["S0001", "7А", 7, "Алгебра", "ALG7-05", "Разложение многочленов на множители", "ALG7-ALPHA", "Алгебра 7 · УМК «Альфа»", "ALG7-T3", "Q01", 1, "2026-02-12"],
-      ["S0001", "7А", 7, "Алгебра", "ALG7-05", "Разложение многочленов на множители", "ALG7-ALPHA", "Алгебра 7 · УМК «Альфа»", "ALG7-T3", "Q02", 0, "2026-02-12"],
-    ],
+    [row("Q01", 1), row("Q02", 0)],
   );
 }
 
 export function curriculumTemplateCsv(rows?: { subject: string; grade: number; topicId: string; topicName: string }[]): string {
   const data = rows
     ? rows.map((r) => [r.subject, r.grade, r.topicId, r.topicName, "", ""])
-    : [
-        ["Алгебра", 7, "ALG7-05", "Разложение многочленов на множители", 14, 10],
-        ["Алгебра", 7, "ALG7-06", "Алгебраические дроби", 14, 10],
-      ];
+    : [[i18n().m.schema.curriculum.subject.example, 7, i18n().m.schema.curriculum.topicId.example, i18n().m.schema.curriculum.topicName.example, 14, 10]];
   return toCsv(
     CURRICULUM_COLUMNS.map((c) => c.name),
     data,

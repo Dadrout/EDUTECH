@@ -1,6 +1,7 @@
 import type { AnalysisConfig } from "@/lib/config/analysis-config";
 import type { AnswerRecord, DifficultyStatus, MasteryLevel } from "@/lib/domain/types";
 import { questionKeyOf, topicKeyOf } from "@/lib/domain/types";
+import { i18n } from "@/i18n/core";
 import { compareTopics, naturalCompare } from "./filters";
 import {
   classifyDifficulty,
@@ -72,10 +73,11 @@ export class StudentAccumulator {
 }
 
 export function describeSample(students: number, answers: number, config: AnalysisConfig): string | null {
+  const { t, m } = i18n();
   const parts: string[] = [];
-  if (students < config.minStudentsPerTopic) parts.push(`учеников ${students} из минимально необходимых ${config.minStudentsPerTopic}`);
-  if (answers < config.minAnswersPerTopic) parts.push(`ответов ${answers} из ${config.minAnswersPerTopic}`);
-  return parts.length ? `Недостаточно данных: ${parts.join(", ")}.` : null;
+  if (students < config.minStudentsPerTopic) parts.push(t(m.topics.sampleStudents, { n: students, min: config.minStudentsPerTopic }));
+  if (answers < config.minAnswersPerTopic) parts.push(t(m.topics.sampleAnswers, { n: answers, min: config.minAnswersPerTopic }));
+  return parts.length ? t(m.topics.sampleNote, { parts: parts.join(m.common.listSep) }) : null;
 }
 
 interface TopicAccumulator {

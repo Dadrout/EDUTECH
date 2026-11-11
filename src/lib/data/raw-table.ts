@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n/core";
 import Papa from "papaparse";
 
 /** Таблица «как в файле»: заголовки и строки строковых значений. */
@@ -24,7 +25,7 @@ export function decodeText(bytes: Uint8Array): { text: string; encoding: string 
     try {
       return { text: new TextDecoder("windows-1251").decode(bytes), encoding: "Windows-1251" };
     } catch {
-      throw new TableReadError("Не удалось определить кодировку файла. Сохраните его в UTF-8.");
+      throw new TableReadError(i18n().m.validation.encoding);
     }
   }
 }
@@ -36,7 +37,7 @@ function isBlankRow(row: string[]): boolean {
 function finalize(matrix: string[][], delimiter: string | null, encoding: string | null): RawTable {
   // Первая непустая строка — заголовок.
   const headerIndex = matrix.findIndex((r) => !isBlankRow(r));
-  if (headerIndex < 0) throw new TableReadError("Файл пуст.");
+  if (headerIndex < 0) throw new TableReadError(i18n().m.validation.emptyFile);
   const headers = matrix[headerIndex].map((h) => h.replace(/^\uFEFF/, "").trim());
   const rows: string[][] = [];
   const rowNumbers: number[] = [];
@@ -58,7 +59,7 @@ export function parseCsvText(text: string, encoding: string | null = null): RawT
   });
   const fatal = result.errors.find((e) => e.type === "Quotes");
   if (fatal) {
-    throw new TableReadError(`Ошибка разбора CSV в строке ${(fatal.row ?? 0) + 1}: незакрытые кавычки.`);
+    throw new TableReadError(i18n().t(i18n().m.validation.csvQuotes, { row: (fatal.row ?? 0) + 1 }));
   }
   const matrix = result.data.map((row) => row.map((c) => (c ?? "").toString()));
   return finalize(matrix, result.meta.delimiter ?? null, encoding);
@@ -85,7 +86,7 @@ export async function parseXlsx(data: ArrayBuffer): Promise<RawTable> {
   try {
     sheet = (await readSheet(data)) as unknown[][];
   } catch {
-    throw new TableReadError("Не удалось прочитать XLSX-файл. Проверьте, что это книга Excel (.xlsx), а не .xls.");
+    throw new TableReadError(i18n().m.validation.xlsxFailed);
   }
   return finalize(sheet.map((row) => row.map(cellToString)), null, "XLSX");
 }
@@ -93,12 +94,12 @@ export async function parseXlsx(data: ArrayBuffer): Promise<RawTable> {
 export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 export async function readTableFromFile(file: File): Promise<RawTable> {
-  if (file.size === 0) throw new TableReadError("Файл пуст.");
-  if (file.size > MAX_FILE_BYTES) throw new TableReadError("Файл больше 50 МБ — разделите его на части.");
+  if (file.size === 0) throw new TableReadError(i18n().m.validation.emptyFile);
+  if (file.size > MAX_FILE_BYTES) throw new TableReadError(i18n().m.validation.tooLarge);
   const name = file.name.toLowerCase();
   const buffer = await file.arrayBuffer();
   if (name.endsWith(".xlsx")) return parseXlsx(buffer);
-  if (name.endsWith(".xls")) throw new TableReadError("Формат .xls не поддерживается — сохраните файл как .xlsx или .csv.");
+  if (name.endsWith(".xls")) throw new TableReadError(i18n().m.validation.xlsUnsupported);
   const { text, encoding } = decodeText(new Uint8Array(buffer));
   return parseCsvText(text, encoding);
 }

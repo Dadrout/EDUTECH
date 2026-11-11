@@ -1,6 +1,7 @@
 import type { AnalysisConfig } from "@/lib/config/analysis-config";
 import type { AnswerRecord } from "@/lib/domain/types";
-import { countLabel, formatCi, formatPct, formatPp, quote, shortTextbookName } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { formatCi, formatPct, formatPercentValue, formatPp, formatPpAbs, quote, shortTextbookName } from "@/lib/format";
 import { listCourses, naturalCompare } from "./filters";
 import { computeHeatmap } from "./heatmap";
 import { isProblemStatus } from "./stats";
@@ -22,7 +23,14 @@ export interface Insight {
 /** Отставание класса от параллели по теме, начиная с которого оно попадает в список проблем. */
 export const CLASS_GAP_THRESHOLD = 0.15;
 
-const courseLabel = (subject: string, grade: number) => `${subject}, ${grade} класс`;
+const courseLabel = (subject: string, grade: number) => i18n().t(i18n().m.units.course, { subject, grade });
+
+/** «A, B, C» или «A, B, C и другие». */
+function listText(items: string[], more: boolean): string {
+  const { t, m } = i18n();
+  const list = items.join(m.common.listSep);
+  return more ? t(m.common.andOthers, { list }) : list;
+}
 
 /**
  * Основные выявленные проблемы — детерминированные правила поверх статистики.
@@ -30,35 +38,41 @@ const courseLabel = (subject: string, grade: number) => `${subject}, ${grade} к
  */
 export function computeInsights(records: AnswerRecord[], topicStats: TopicStats[], config: AnalysisConfig): Insight[] {
   const insights: Insight[] = [];
+  const { t, m, plural } = i18n();
+  const threshold = formatPercentValue(config.thresholds.medium);
 
   // 1. Темы с низким уровнем освоения.
   const problems = topicStats
-    .filter((t) => isProblemStatus(t.status) && t.rate !== null)
+    .filter((x) => isProblemStatus(x.status) && x.rate !== null)
     .sort((a, b) => (a.rate as number) - (b.rate as number));
-  for (const t of problems.slice(0, 3)) {
-    const confirmed = t.status === "difficult";
+  const tr = t;
+  for (const topic of problems.slice(0, 3)) {
+    const confirmed = topic.status === "difficult";
     insights.push({
-      id: `topic-${t.key}`,
+      id: `topic-${topic.key}`,
       severity: confirmed ? "critical" : "warning",
-      title: `${quote(t.topicName)} — низкое освоение, ${formatPct(t.rate)}`,
-      detail: `${courseLabel(t.subject, t.grade)} · ${t.students} уч. · 95% ДИ ${formatCi(t.estimate?.ciLow, t.estimate?.ciHigh)}. ${
-        confirmed
-          ? `Вывод надёжен: даже верхняя граница интервала ниже ${config.thresholds.medium}%.`
-          : `Интервал пересекает порог ${config.thresholds.medium}% — тема вероятно сложная, нужны дополнительные данные.`
-      }`,
+      title: tr(m.insights.topicLowTitle, { topic: quote(topic.topicName), rate: formatPct(topic.rate) }),
+      detail: tr(m.insights.topicLowDetail, {
+        course: courseLabel(topic.subject, topic.grade),
+        students: topic.students,
+        ci: formatCi(topic.estimate?.ciLow, topic.estimate?.ciHigh),
+        verdict: tr(confirmed ? m.insights.reliable : m.insights.likely, { threshold }),
+      }),
       href: "/topics",
-      scope: { subject: t.subject, grade: t.grade, topicKey: t.key },
+      scope: { subject: topic.subject, grade: topic.grade, topicKey: topic.key },
     });
   }
   if (problems.length > 3) {
     insights.push({
       id: "topics-more",
       severity: "warning",
-      title: `Ещё ${countLabel(problems.length - 3, ["тема", "темы", "тем"])} с низким уровнем освоения`,
-      detail: problems
-        .slice(3, 6)
-        .map((t) => `${quote(t.topicName)} (${formatPct(t.rate, 0)})`)
-        .join(", ") + (problems.length > 6 ? " и другие." : "."),
+      title: plural(m.insights.moreTitle, problems.length - 3),
+      detail: t(m.common.sentence, {
+        text: listText(
+          problems.slice(3, 6).map((p) => t(m.insights.topicWithRate, { topic: quote(p.topicName), rate: formatPct(p.rate, 0) })),
+          problems.length > 6,
+        ),
+      }),
       href: "/topics",
     });
   }
@@ -104,8 +118,8 @@ export function computeInsights(records: AnswerRecord[], topicStats: TopicStats[
     insights.push({
       id: `gap-${g.classId}-${g.topicKey}`,
       severity: "warning",
-      title: `${g.classId} отстаёт по теме ${quote(g.topicName)} на ${formatPp(Math.abs(g.delta), 0).replace(/^[+±]/, "")}`,
-      detail: `${courseLabel(g.subject, g.grade)}: успешность класса ${formatPct(g.rate)} при среднем по параллели ${formatPct(g.avg)}. Стоит проверить методику преподавания темы в этом классе.`,
+      title: t(m.insights.classGapTitle, { classId: g.classId, topic: quote(g.topicName), pp: formatPpAbs(g.delta, 0) }),
+      detail: t(m.insights.classGapDetail, { course: courseLabel(g.subject, g.grade), rate: formatPct(g.rate), avg: formatPct(g.avg) }),
       href: "/topics",
       scope: { subject: g.subject, grade: g.grade },
     });
@@ -127,27 +141,29 @@ export function computeInsights(records: AnswerRecord[], topicStats: TopicStats[
       textbookFindings.push({
         id: `tb-${course.subject}-${course.grade}-${v.textbookId}`,
         severity: "info",
-        title: `${courseLabel(course.subject, course.grade)}: ${quote(a)} относительно ${quote(b)} — ${formatPp(v.diff.diff)}`,
-        detail: `${v.level === "consistent" ? "Различие устойчиво во всех классах" : "Различие значимо, но вывод предварительный"}. Это связь на общих заданиях, а не доказательство того, что учебник — причина.`,
+        title: t(m.insights.textbookTitle, { course: courseLabel(course.subject, course.grade), a: quote(a), b: quote(b), diff: formatPp(v.diff.diff) }),
+        detail: t(m.insights.textbookDetail, { verdict: v.level === "consistent" ? m.insights.textbookConsistent : m.insights.textbookPreliminary }),
         href: "/textbooks",
         scope: { subject: course.subject, grade: course.grade },
       });
     }
   }
-  textbookFindings.sort((x, y) => x.title.localeCompare(y.title, "ru"));
+  textbookFindings.sort((x, y) => x.title.localeCompare(y.title, i18n().intl));
   insights.push(...textbookFindings.slice(0, 2));
 
   // 4. Темы с недостаточным объёмом данных.
-  const insufficient = topicStats.filter((t) => !t.sufficient);
+  const insufficient = topicStats.filter((x) => !x.sufficient);
   if (insufficient.length > 0) {
     insights.push({
       id: "insufficient",
       severity: "info",
-      title: `${countLabel(insufficient.length, ["тема", "темы", "тем"])} без достаточного объёма данных`,
-      detail: `${insufficient
-        .slice(0, 3)
-        .map((t) => `${quote(t.topicName)} (${t.students} уч.)`)
-        .join(", ")}${insufficient.length > 3 ? " и другие" : ""}. Выводы о сложности таких тем не делаются.`,
+      title: plural(m.insights.insufficientTitle, insufficient.length),
+      detail: t(m.insights.insufficientDetail, {
+        list: listText(
+          insufficient.slice(0, 3).map((x) => t(m.insights.insufficientItem, { topic: quote(x.topicName), n: x.students })),
+          insufficient.length > 3,
+        ),
+      }),
       href: "/topics",
     });
   }
@@ -156,8 +172,8 @@ export function computeInsights(records: AnswerRecord[], topicStats: TopicStats[
     insights.unshift({
       id: "no-problems",
       severity: "info",
-      title: "Тем с низким уровнем освоения не выявлено",
-      detail: `Все темы с достаточным объёмом данных освоены не ниже ${config.thresholds.medium}%.`,
+      title: m.insights.noneTitle,
+      detail: t(m.insights.noneDetail, { threshold }),
       href: "/topics",
     });
   }

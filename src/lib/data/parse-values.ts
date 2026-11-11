@@ -1,7 +1,13 @@
 /** Разбор значений ячеек. Каждая функция возвращает null для недопустимого значения. */
 
-const TRUE_VALUES = new Set(["1", "1.0", "true", "t", "yes", "y", "да", "д", "верно", "правильно", "истина", "+"]);
-const FALSE_VALUES = new Set(["0", "0.0", "false", "f", "no", "n", "нет", "н", "неверно", "неправильно", "ложь", "-"]);
+const TRUE_VALUES = new Set([
+  "1", "1.0", "true", "t", "yes", "y", "да", "д", "верно", "правильно", "истина", "+",
+  "иә", "дұрыс", "是", "对", "正确", "sí", "si", "verdadero", "correcto", "oui", "vrai", "juste", "ja", "wahr", "richtig", "evet", "doğru", "dogru", "ha", "toʻgʻri", "to'g'ri",
+]);
+const FALSE_VALUES = new Set([
+  "0", "0.0", "false", "f", "no", "n", "нет", "н", "неверно", "неправильно", "ложь", "-",
+  "жоқ", "қате", "否", "错", "错误", "falso", "incorrecto", "non", "faux", "nein", "falsch", "hayır", "hayir", "yanlış", "yanlis", "yoʻq", "yo'q", "notoʻgʻri", "noto'g'ri",
+]);
 
 export function parseBoolean(value: string): boolean | null {
   const v = value.trim().toLowerCase().replace(",", ".");

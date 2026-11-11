@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@/i18n/core";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -87,7 +88,7 @@ export function ForestPlot({
                 />
               </>
             ) : (
-              <span className="absolute inset-0 flex items-center text-[11px] text-muted-foreground">нет оценки</span>
+              <span className="absolute inset-0 flex items-center text-[11px] text-muted-foreground">{i18n().m.charts.noEstimate}</span>
             )}
           </div>
           <div className="text-right">

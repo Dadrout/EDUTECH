@@ -4,6 +4,7 @@ import * as React from "react";
 import { Info, type LucideIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 export function PageHeader({
   title,
@@ -14,6 +15,11 @@ export function PageHeader({
   description?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const { m } = useI18n();
+  // Заголовок вкладки браузера — на языке интерфейса (метаданные страниц статичны и русские).
+  React.useEffect(() => {
+    document.title = `${title} · ${m.common.appName}`;
+  }, [title, m.common.appName]);
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
@@ -55,7 +61,9 @@ export function Section({
 }
 
 /** Пояснение «как рассчитано» — доступно по клику и с клавиатуры. */
-export function MethodNote({ title = "Как рассчитано", children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+export function MethodNote({ title: titleProp, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+  const { m } = useI18n();
+  const title = titleProp ?? m.common.howCalculated;
   return (
     <Popover>
       <PopoverTrigger

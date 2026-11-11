@@ -16,7 +16,10 @@ import { computeInsights, type Insight, type InsightSeverity } from "@/lib/analy
 import { computeOverview } from "@/lib/analytics/overview";
 import { computeTopicStats } from "@/lib/analytics/topics";
 import type { DifficultyStatus } from "@/lib/domain/types";
-import { countLabel, formatCi, formatDate, formatInt, formatPct } from "@/lib/format";
+import { formatCi, formatDate, formatInt, formatPct, formatPercentValue } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
+import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 
@@ -24,24 +27,24 @@ const MAX_CHART_TOPICS = 15;
 /** Сколько проблем показывать до раскрытия списка: самые важные идут первыми. */
 const INSIGHTS_PREVIEW = 5;
 
-const SEVERITY: Record<InsightSeverity, { Icon: LucideIcon; className: string; label: string }> = {
-  critical: { Icon: AlertOctagon, className: "text-level-low", label: "Критично" },
-  warning: { Icon: AlertTriangle, className: "text-level-medium-fg", label: "Внимание" },
-  info: { Icon: Info, className: "text-primary", label: "К сведению" },
+const SEVERITY: Record<InsightSeverity, { Icon: LucideIcon; className: string; readonly label: string }> = {
+  critical: { Icon: AlertOctagon, className: "text-level-low", get label() { return i18n().m.overview.severity.critical; } },
+  warning: { Icon: AlertTriangle, className: "text-level-medium-fg", get label() { return i18n().m.overview.severity.warning; } },
+  info: { Icon: Info, className: "text-primary", get label() { return i18n().m.overview.severity.info; } },
 };
 
 export function SyntheticNotice() {
   const { dataset } = useReadyData();
+  const { m } = useI18n();
   if (!dataset.meta.isSynthetic) return null;
   return (
     // Пунктир — тот же знак «не окончательно», что и у статуса «Вероятно сложная».
     <div role="note" className="flex items-start gap-2 rounded-lg border border-dashed border-input px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
       <FlaskConical className="mt-[3px] size-3.5 shrink-0" aria-hidden />
       <p>
-        <span className="font-medium text-foreground">Демонстрационный режим:</span> синтетические результаты 300 учеников, не относятся к реальным школам, ученикам или
-        издательствам.{" "}
+        <span className="font-medium text-foreground">{m.notice.title}</span> {m.notice.text}{" "}
         <Link href="/data" className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline">
-          Загрузить собственные данные
+          {m.notice.link}
         </Link>
       </p>
     </div>
@@ -51,6 +54,7 @@ export function SyntheticNotice() {
 function InsightItem({ insight }: { insight: Insight }) {
   const router = useRouter();
   const { setFilters } = useReadyData();
+  const { m } = useI18n();
   const meta = SEVERITY[insight.severity];
   return (
     <li className="flex gap-3 px-5 py-3.5">
@@ -66,7 +70,7 @@ function InsightItem({ insight }: { insight: Insight }) {
             router.push(insight.href);
           }}
         >
-          Подробнее
+          {m.common.more}
           <ArrowRight className="size-3" aria-hidden />
         </button>
       </div>
@@ -112,6 +116,7 @@ function StatusSummary({ counts }: { counts: Record<DifficultyStatus, number> })
 
 function OverviewContent() {
   const { dataset, filters, config, courses } = useReadyData();
+  const { m, t, plural } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters), [dataset.records, filters]);
   const topicStats = React.useMemo(() => computeTopicStats(records, config), [records, config]);
   const overview = React.useMemo(() => computeOverview(records, topicStats, config), [records, topicStats, config]);
@@ -152,7 +157,7 @@ function OverviewContent() {
   if (records.length === 0) {
     return (
       <div className="rounded-xl border bg-card">
-        <EmptyState icon={Info} title="Нет данных для выбранных фильтров" description="Измените или сбросьте фильтры." />
+        <EmptyState icon={Info} title={m.common.noDataForFilters} description={m.common.changeFilters} />
       </div>
     );
   }
@@ -161,59 +166,55 @@ function OverviewContent() {
     <div className="grid grid-cols-1 gap-5">
       {/* Сначала выводы (результат, проблемные темы), затем объём данных, на котором они получены. */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
-        <KpiTile label="Средний результат" value={formatPct(k.estimate?.rate)} sub={`95% ДИ ${formatCi(k.estimate?.ciLow, k.estimate?.ciHigh)}`} />
+        <KpiTile label={m.overview.kpiAverage} value={formatPct(k.estimate?.rate)} sub={t(m.units.ciValue, { ci: formatCi(k.estimate?.ciLow, k.estimate?.ciHigh) })} />
         <KpiTile
           tone={k.problemTopics > 0 ? "low" : "default"}
-          label="Проблемных тем"
+          label={m.overview.kpiProblems}
           value={formatInt(k.problemTopics)}
-          sub={`ниже ${config.thresholds.medium}%${k.insufficientTopics ? ` · ${k.insufficientTopics} без выводов` : ""}`}
+          sub={`${t(m.overview.kpiProblemsSub, { threshold: formatPercentValue(config.thresholds.medium) })}${k.insufficientTopics ? t(m.overview.kpiNoConclusion, { n: k.insufficientTopics }) : ""}`}
         />
         <dl className="col-span-2 grid grid-cols-[auto_auto_minmax(0,1fr)] content-center items-baseline gap-x-4 gap-y-1 bg-card px-5 py-4 text-[13px] lg:col-span-1">
-          <dt className="text-muted-foreground">Учеников</dt>
+          <dt className="text-muted-foreground">{m.overview.students}</dt>
           <dd className="text-right font-semibold tabular">{formatInt(k.students)}</dd>
-          <dd className="truncate text-muted-foreground tabular">{formatInt(k.answers)} ответов</dd>
-          <dt className="text-muted-foreground">Классов</dt>
+          <dd className="truncate text-muted-foreground tabular">{plural(m.counts.answers, k.answers)}</dd>
+          <dt className="text-muted-foreground">{m.overview.classes}</dt>
           <dd className="text-right font-semibold tabular">{formatInt(k.classes)}</dd>
-          <dd className="truncate text-muted-foreground tabular">{countLabel(k.textbooks, ["учебник", "учебника", "учебников"])}</dd>
-          <dt className="text-muted-foreground">Учебных тем</dt>
+          <dd className="truncate text-muted-foreground tabular">{plural(m.counts.textbooks, k.textbooks)}</dd>
+          <dt className="text-muted-foreground">{m.overview.topics}</dt>
           <dd className="text-right font-semibold tabular">{formatInt(k.topics)}</dd>
-          <dd className="truncate text-muted-foreground tabular">{countLabel(k.tests, ["тест", "теста", "тестов"])}</dd>
+          <dd className="truncate text-muted-foreground tabular">{plural(m.counts.tests, k.tests)}</dd>
         </dl>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="grid grid-cols-1 gap-5">
           <Section
-            title="Успешность по темам"
+            title={m.overview.chartTitle}
             description={
-              topicStats.length > MAX_CHART_TOPICS
-                ? `Показаны ${MAX_CHART_TOPICS} тем с наименьшей успешностью из ${topicStats.length}. Уточните фильтр или откройте анализ тем.`
-                : "Доля правильных ответов по каждой теме, от сложных к освоенным."
+              topicStats.length > MAX_CHART_TOPICS ? t(m.overview.chartShown, { shown: MAX_CHART_TOPICS, total: topicStats.length }) : m.overview.chartAll
             }
             actions={
               <>
                 <MethodNote>
                   <p>
-                    <b>Успешность темы</b> — доля правильных ответов на все задания темы: верных ответов / всех ответов.
+                    <Rich text={m.overview.methodRate} />
                   </p>
-                  <p>
-                    Цвет — уровень освоения: высокий от {config.thresholds.high}%, средний от {config.thresholds.medium}%, ниже — низкий. Пороги настраиваются в «Параметрах анализа».
-                  </p>
-                  <p>Серым показаны темы, по которым мало данных для вывода.</p>
+                  <p>{t(m.overview.methodColor, { high: formatPercentValue(config.thresholds.high), medium: formatPercentValue(config.thresholds.medium) })}</p>
+                  <p>{m.overview.methodGrey}</p>
                 </MethodNote>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/topics">Анализ тем</Link>
+                  <Link href="/topics">{m.overview.openTopics}</Link>
                 </Button>
               </>
             }
           >
             <div className="px-3 py-4 sm:px-5">
-              <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel="Успешность по темам" />
+              <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel={m.overview.chartTitle} />
             </div>
           </Section>
           <Section
-            title="Темы по статусу сложности"
-            description={k.dateFrom ? `Тестирование: ${formatDate(k.dateFrom)} — ${formatDate(k.dateTo)}` : undefined}
+            title={m.overview.statusTitle}
+            description={k.dateFrom ? t(m.overview.testingPeriod, { from: formatDate(k.dateFrom), to: formatDate(k.dateTo) }) : undefined}
           >
             <div className="px-5 py-2">
               <StatusSummary counts={statusCounts} />
@@ -221,9 +222,9 @@ function OverviewContent() {
           </Section>
         </div>
 
-        <Section title="Основные выявленные проблемы" description="Правила применяются к отфильтрованным данным.">
+        <Section title={m.overview.insightsTitle} description={m.overview.insightsDescription}>
           {insights.length === 0 ? (
-            <EmptyState icon={Info} title="Проблем не выявлено" description="Для выбранных фильтров нет тем и классов, требующих внимания." />
+            <EmptyState icon={Info} title={m.overview.noProblemsTitle} description={m.overview.noProblemsDescription} />
           ) : (
             <>
               <ul className="divide-y">
@@ -238,7 +239,7 @@ function OverviewContent() {
                   onClick={() => setAllInsights((v) => !v)}
                   className="w-full rounded-b-xl border-t px-5 py-2.5 text-left text-[13px] font-medium text-primary outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:ring-inset"
                 >
-                  {allInsights ? "Свернуть список" : `Показать ещё ${hiddenInsights}`}
+                  {allInsights ? m.overview.collapse : t(m.overview.showMore, { n: hiddenInsights })}
                 </button>
               ) : null}
             </>
@@ -247,8 +248,8 @@ function OverviewContent() {
       </div>
 
       <Section
-        title="Распределение результатов по предметам"
-        description={`Доля учеников по уровню освоения (учитываются ученики с ${config.minAnswersPerStudent}+ ответами по предмету).`}
+        title={m.overview.distributionTitle}
+        description={t(m.overview.distributionDescription, { n: config.minAnswersPerStudent })}
       >
         <div className="px-5 py-5">
           <LevelDistribution subjects={overview.subjects} thresholds={config.thresholds} />
@@ -259,12 +260,10 @@ function OverviewContent() {
 }
 
 export function OverviewView() {
+  const { m } = useI18n();
   return (
     <div className="grid grid-cols-1 gap-5">
-      <PageHeader
-        title="Обзор успеваемости"
-        description="Сводка по результатам тестирования. Все показатели рассчитываются из загруженных данных и пересчитываются при смене фильтров."
-      />
+      <PageHeader title={m.overview.title} description={m.overview.description} />
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade", "classId", "textbookId", "topicKey"]} />

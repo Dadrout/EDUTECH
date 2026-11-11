@@ -19,7 +19,10 @@ import { buildHoursInputs, planTotal, recommendHours, type HoursRow } from "@/li
 import { computeTopicStats } from "@/lib/analytics/topics";
 import { defaultHoursConfig } from "@/lib/config/analysis-config";
 import { curriculumTemplateCsv, downloadCsv, toCsv } from "@/lib/data/export";
-import { formatHours, formatHoursDelta, formatNumber, formatPct } from "@/lib/format";
+import { formatHours, formatHoursDelta, formatNumber, formatPct, quote } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
+import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 import { SyntheticNotice } from "./overview-view";
@@ -72,14 +75,15 @@ function exportPlan(rows: HoursRow[], subject: string, grade: number, reserve: n
         r.changeHours,
         r.reasons.join(" "),
       ]),
-      ...(reserve > 0 ? [[subject, grade, "", "Резерв (не распределено)", "", "", "", reserve, "", ""]] : []),
+      ...(reserve > 0 ? [[subject, grade, "", i18n().m.hours.reserve, "", "", "", reserve, "", ""]] : []),
     ],
   );
-  downloadCsv(`рекомендации-часы-${subject}-${grade}.csv`, csv);
+  downloadCsv(i18n().t(i18n().m.hours.exportFile, { subject, grade }), csv);
 }
 
 function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
   const { dataset, filters, config } = useReadyData();
+  const { m, t, plural } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters, ["subject", "grade"]), [dataset.records, filters]);
   const topicStats = React.useMemo(() => computeTopicStats(records, config), [records, config]);
   const { inputs, unplanned } = React.useMemo(() => buildHoursInputs(dataset.curriculum, topicStats, subject, grade), [dataset.curriculum, topicStats, subject, grade]);
@@ -116,24 +120,24 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
       <div className="rounded-xl border bg-card">
         <EmptyState
           icon={FileSpreadsheet}
-          title={`Учебный план для «${subject}, ${grade} класс» не загружен`}
-          description="Для рекомендаций нужны текущие и минимальные часы по каждой теме. Скачайте шаблон — в нём уже перечислены темы из результатов тестирования, — заполните часы и загрузите его на странице данных."
+          title={t(m.hours.noPlanTitle, { course: quote(t(m.units.course, { subject, grade })) })}
+          description={m.hours.noPlanDescription}
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button
                 variant="outline"
                 onClick={() =>
                   downloadCsv(
-                    `учебный-план-${subject}-${grade}.csv`,
+                    t(m.hours.templateFile, { subject, grade }),
                     curriculumTemplateCsv(topicStats.map((t) => ({ subject: t.subject, grade: t.grade, topicId: t.topicId, topicName: t.topicName }))),
                   )
                 }
               >
                 <Download aria-hidden />
-                Шаблон плана с темами
+                {m.hours.planTemplate}
               </Button>
               <Button asChild>
-                <Link href="/data">Загрузить учебный план</Link>
+                <Link href="/data">{m.hours.uploadPlan}</Link>
               </Button>
             </div>
           }
@@ -147,32 +151,32 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
   return (
     <div className="grid grid-cols-1 gap-5">
       <Section
-        title="Параметры расчёта"
-        description="Исходные данные — учебный план и результаты тестирования выбранной параллели. Изменения пересчитываются сразу."
+        title={m.hours.paramsTitle}
+        description={m.hours.paramsDescription}
         actions={
           <Button variant="ghost" size="sm" onClick={() => setForm(defaults)}>
             <RotateCcw aria-hidden />
-            По умолчанию
+            {m.hours.defaults}
           </Button>
         }
       >
         <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2 lg:grid-cols-5">
-          <ParamField id="budget" label="Бюджет часов" value={form.budget} onChange={set("budget")} suffix="ч" hint={`Сейчас по плану: ${formatHours(total)}`} />
-          <ParamField id="target" label="Целевой уровень освоения" value={form.target} onChange={set("target")} suffix="%" hint="Темы ниже цели получают приоритет" />
-          <ParamField id="maxInc" label="Макс. увеличение темы" value={form.maxInc} onChange={set("maxInc")} suffix="%" hint="от текущих часов темы" />
-          <ParamField id="maxDec" label="Макс. сокращение донора" value={form.maxDec} onChange={set("maxDec")} suffix="%" hint="не ниже минимума часов" />
+          <ParamField id="budget" label={m.hours.budget} value={form.budget} onChange={set("budget")} suffix={m.hours.hoursSuffix} hint={t(m.hours.budgetHint, { hours: formatHours(total) })} />
+          <ParamField id="target" label={m.hours.target} value={form.target} onChange={set("target")} suffix="%" hint={m.hours.targetHint} />
+          <ParamField id="maxInc" label={m.hours.maxIncrease} value={form.maxInc} onChange={set("maxInc")} suffix="%" hint={m.hours.maxIncreaseHint} />
+          <ParamField id="maxDec" label={m.hours.maxDecrease} value={form.maxDec} onChange={set("maxDec")} suffix="%" hint={m.hours.maxDecreaseHint} />
           <div className="grid content-start gap-1.5">
-            <Label htmlFor="step">Шаг изменения</Label>
+            <Label htmlFor="step">{m.hours.step}</Label>
             <Select value={form.step} onValueChange={set("step")}>
               <SelectTrigger id="step" className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 час</SelectItem>
-                <SelectItem value="0.5">0,5 часа</SelectItem>
+                <SelectItem value="1">{m.hours.stepOne}</SelectItem>
+                <SelectItem value="0.5">{m.hours.stepHalf}</SelectItem>
               </SelectContent>
             </Select>
-            <span className="text-[11px] text-muted-foreground">минимальная единица переноса</span>
+            <span className="text-[11px] text-muted-foreground">{m.hours.stepHint}</span>
           </div>
         </div>
       </Section>
@@ -180,7 +184,7 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
       {!plan.ok ? (
         <Alert variant="destructive">
           <AlertOctagon aria-hidden />
-          <AlertTitle>{plan.kind === "budget_below_minimum" ? "Конфликт ограничений: план не сформирован" : plan.message}</AlertTitle>
+          <AlertTitle>{plan.kind === "budget_below_minimum" ? m.hours.conflictTitle : plan.message}</AlertTitle>
           <AlertDescription>
             {plan.kind === "budget_below_minimum" ? <p>{plan.message}</p> : null}
             {plan.details.length > 0 ? (
@@ -196,11 +200,11 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
         <>
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3 lg:grid-cols-5">
             {[
-              { label: "Текущая сумма часов", value: formatHours(plan.currentTotal) },
-              { label: "Рекомендуемая сумма", value: formatHours(plan.recommendedTotal) },
-              { label: "Резерв (не распределено)", value: formatHours(plan.reserveHours) },
-              { label: "Перераспределено", value: formatHours(plan.movedHours), sub: `${changed} тем изменено` },
-              { label: "Сумма минимумов", value: formatHours(plan.minTotal) },
+              { label: m.hours.kpiCurrent, value: formatHours(plan.currentTotal) },
+              { label: m.hours.kpiRecommended, value: formatHours(plan.recommendedTotal) },
+              { label: m.hours.kpiReserve, value: formatHours(plan.reserveHours) },
+              { label: m.hours.kpiMoved, value: formatHours(plan.movedHours), sub: plural(m.hours.kpiChanged, changed) },
+              { label: m.hours.kpiMinimum, value: formatHours(plan.minTotal) },
             ].map((k) => (
               <div key={k.label} className="bg-card px-4 py-3.5">
                 <div className="text-xs font-medium text-muted-foreground">{k.label}</div>
@@ -214,24 +218,22 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
             <Alert variant="success">
               <CheckCircle2 aria-hidden />
               <AlertTitle>
-                Ограничения соблюдены: {formatHours(plan.recommendedTotal)} + резерв {formatHours(plan.reserveHours)} = бюджет {formatHours(plan.budgetHours)}
+                {t(m.hours.okTitle, { recommended: formatHours(plan.recommendedTotal), reserve: formatHours(plan.reserveHours), budget: formatHours(plan.budgetHours) })}
               </AlertTitle>
               <AlertDescription>
-                <p>Ни одна тема не опускается ниже установленного минимума, отрицательных значений нет. Рекомендации — предложение для методиста, а не обязательное решение.</p>
+                <p>{m.hours.okText}</p>
               </AlertDescription>
             </Alert>
             {plan.warnings.length > 0 || unplanned.length > 0 ? (
               <Alert variant="warning">
                 <AlertTriangle aria-hidden />
-                <AlertTitle>Обратите внимание</AlertTitle>
+                <AlertTitle>{m.hours.noticeTitle}</AlertTitle>
                 <AlertDescription>
                   {plan.warnings.map((w) => (
                     <p key={w}>{w}</p>
                   ))}
                   {unplanned.length > 0 ? (
-                    <p>
-                      Темы с результатами тестирования, которых нет в учебном плане: {unplanned.map((u) => `«${u.topicName}»`).join(", ")}. Они не участвуют в расчёте.
-                    </p>
+                    <p>{t(m.hours.unplanned, { topics: unplanned.map((u) => quote(u.topicName)).join(m.common.listSep) })}</p>
                   ) : null}
                 </AlertDescription>
               </Alert>
@@ -239,26 +241,16 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
           </div>
 
           <Section
-            title="Перераспределение часов"
-            description="Какие темы получают дополнительные часы и за счёт каких тем."
+            title={m.hours.chartTitle}
+            description={m.hours.chartDescription}
             actions={
-              <MethodNote title="Как сформирована рекомендация">
-                <p>
-                  <b>1. База.</b> Текущие часы каждой темы, но не ниже минимума из плана.
-                </p>
-                <p>
-                  <b>2. Бюджет.</b> Если база превышает бюджет, часы снимаются по шагу с тем с наибольшим освоением и запасом над минимумом.
-                </p>
-                <p>
-                  <b>3. Приоритет.</b> Для тем ниже цели: приоритет = (цель − успешность) / цель. Потребность = часы × макс. увеличение × приоритет, с округлением до шага.
-                </p>
-                <p>
-                  <b>4. Источник часов.</b> Сначала используется свободный бюджет, затем часы тем-доноров — тем с освоением не ниже цели. Донор отдаёт не больше «макс. сокращения» своих часов и не опускается ниже минимума; первыми отдают темы с наибольшим освоением.
-                </p>
-                <p>
-                  <b>5. Резерв.</b> Неиспользованный бюджет не распределяется произвольно, а показывается как резерв.
-                </p>
-                <p>Темы с недостаточными данными и без результатов тестирования не меняются. Это эвристика, а не модель педагогической эффективности.</p>
+              <MethodNote title={m.hours.methodTitle}>
+                {[m.hours.method1, m.hours.method2, m.hours.method3, m.hours.method4, m.hours.method5].map((text) => (
+                  <p key={text}>
+                    <Rich text={text} />
+                  </p>
+                ))}
+                <p>{m.hours.method6}</p>
               </MethodNote>
             }
           >
@@ -268,12 +260,12 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
           </Section>
 
           <Section
-            title="Рекомендации по темам"
-            description="Обоснование указано для каждой темы."
+            title={m.hours.tableTitle}
+            description={m.hours.tableDescription}
             actions={
               <Button variant="outline" size="sm" onClick={() => exportPlan(plan.rows, subject, grade, plan.reserveHours)}>
                 <Download aria-hidden />
-                Скачать CSV
+                {m.hours.downloadCsv}
               </Button>
             }
           >
@@ -281,13 +273,13 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
               <table className="w-full min-w-[960px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
                   <tr>
-                    <th className="h-9 px-5 text-left font-medium">Тема</th>
-                    <th className="h-9 px-3 text-left font-medium">Успешность</th>
-                    <th className="h-9 px-3 text-right font-medium">Текущие часы</th>
-                    <th className="h-9 px-3 text-right font-medium">Мин.</th>
-                    <th className="h-9 px-3 text-right font-medium">Рекомендуемые</th>
-                    <th className="h-9 px-3 text-right font-medium">Изменение</th>
-                    <th className="h-9 px-5 text-left font-medium">Причина</th>
+                    <th className="h-9 px-5 text-left font-medium">{m.hours.colTopic}</th>
+                    <th className="h-9 px-3 text-left font-medium">{m.hours.colRate}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.hours.colCurrent}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.hours.colMin}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.hours.colRecommended}</th>
+                    <th className="h-9 px-3 text-right font-medium">{m.hours.colChange}</th>
+                    <th className="h-9 px-5 text-left font-medium">{m.hours.colReason}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -299,7 +291,7 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
                           <div className="font-medium">{r.topicName}</div>
                           <div className="text-xs text-muted-foreground">
                             {r.topicId}
-                            {r.priority !== null ? ` · приоритет ${formatNumber(r.priority, 2)}` : ""}
+                            {r.priority !== null ? t(m.hours.priority, { value: formatNumber(r.priority, 2) }) : ""}
                           </div>
                         </td>
                         <td className="px-3 py-3 whitespace-nowrap">
@@ -307,7 +299,7 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
                             <meta.Icon className="size-3.5" style={{ color: meta.color }} aria-label={meta.label} />
                             <span className="font-medium tabular">{formatPct(r.rate)}</span>
                           </span>
-                          <div className="text-[11px] text-muted-foreground">{r.students} уч.</div>
+                          <div className="text-[11px] text-muted-foreground">{t(m.units.studentsShort, { n: r.students })}</div>
                         </td>
                         <td className="px-3 py-3 text-right tabular">{formatHours(r.currentHours)}</td>
                         <td className="px-3 py-3 text-right text-muted-foreground tabular">{formatHours(r.minHours)}</td>
@@ -328,25 +320,25 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
                   })}
                   {plan.reserveHours > 0 ? (
                     <tr className="bg-muted/30">
-                      <td className="px-5 py-3 font-medium">Резерв (не распределено)</td>
+                      <td className="px-5 py-3 font-medium">{m.hours.reserve}</td>
                       <td />
                       <td className="px-3 py-3 text-right tabular">—</td>
                       <td />
                       <td className="px-3 py-3 text-right font-semibold tabular">{formatHours(plan.reserveHours)}</td>
                       <td />
-                      <td className="px-5 py-3 text-xs text-muted-foreground">Часы сверх потребности тем ниже цели; методист распределяет их сам (повторение, обобщение).</td>
+                      <td className="px-5 py-3 text-xs text-muted-foreground">{m.hours.reserveNote}</td>
                     </tr>
                   ) : null}
                 </tbody>
                 <tfoot className="border-t bg-muted/50 font-medium">
                   <tr>
-                    <td className="px-5 py-3">Итого</td>
+                    <td className="px-5 py-3">{m.hours.total}</td>
                     <td />
                     <td className="px-3 py-3 text-right tabular">{formatHours(plan.currentTotal)}</td>
                     <td className="px-3 py-3 text-right text-muted-foreground tabular">{formatHours(plan.minTotal)}</td>
                     <td className="px-3 py-3 text-right tabular">{formatHours(plan.recommendedTotal + plan.reserveHours)}</td>
                     <td className="px-3 py-3 text-right tabular">{formatHoursDelta(plan.recommendedTotal + plan.reserveHours - plan.currentTotal)}</td>
-                    <td className="px-5 py-3 text-xs font-normal text-muted-foreground">Бюджет: {formatHours(plan.budgetHours)}</td>
+                    <td className="px-5 py-3 text-xs font-normal text-muted-foreground">{t(m.hours.budgetTotal, { hours: formatHours(plan.budgetHours) })}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -360,23 +352,25 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
 
 function HoursContent() {
   const { filters, config } = useReadyData();
+  const { m } = useI18n();
   if (filters.subject === null || filters.grade === null) {
-    return <CoursePicker reason="Учебный план составляется для конкретного предмета и параллели — выберите, для какого курса построить рекомендации." />;
+    return <CoursePicker reason={m.hours.pickerReason} />;
   }
   return <HoursPlanner key={`${filters.subject}|${filters.grade}|${config.thresholds.high}`} subject={filters.subject} grade={filters.grade} />;
 }
 
 export function HoursView() {
+  const { m } = useI18n();
   return (
     <div className="grid grid-cols-1 gap-5">
       <PageHeader
-        title="Распределение учебных часов"
-        description="Предложение по перераспределению часов между темами на основе уровня освоения: больше времени — темам, которые ученики усваивают хуже, без превышения бюджета и нарушения минимумов."
+        title={m.hours.title}
+        description={m.hours.description}
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link href="/methodology#hours">
               <Info aria-hidden />
-              Описание алгоритма
+              {m.hours.algorithm}
             </Link>
           </Button>
         }

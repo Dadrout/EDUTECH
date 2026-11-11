@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ChevronRight } from "lucide-react";
 import { useReadyData } from "@/providers/data-provider";
+import { useI18n } from "@/i18n/provider";
 
 /**
  * Выбор предмета и параллели для страниц, где анализ корректен только
@@ -10,6 +11,7 @@ import { useReadyData } from "@/providers/data-provider";
  */
 export function CoursePicker({ reason }: { reason: string }) {
   const { courses, dataset, setFilters, filters } = useReadyData();
+  const { m, t, plural } = useI18n();
 
   const stats = React.useMemo(() => {
     const map = new Map<string, { students: Set<string>; textbooks: Set<string>; topics: Set<string> }>();
@@ -33,7 +35,7 @@ export function CoursePicker({ reason }: { reason: string }) {
     <div className="rounded-xl border bg-card">
       <div className="border-b px-5 py-4">
         <div>
-          <div className="text-sm font-semibold">Выберите предмет и параллель</div>
+          <div className="text-sm font-semibold">{m.coursePicker.title}</div>
           <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{reason}</p>
         </div>
       </div>
@@ -49,10 +51,16 @@ export function CoursePicker({ reason }: { reason: string }) {
               >
                 <span>
                   <span className="block text-sm font-medium">
-                    {c.subject} · {c.grade} класс
+                    {t(m.units.courseDot, { subject: c.subject, grade: c.grade })}
                   </span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {s ? `${s.students.size} уч. · ${s.topics.size} тем · ${s.textbooks.size} учебн.` : null}
+                    {s
+                      ? t(m.coursePicker.stats, {
+                          students: plural(m.counts.students, s.students.size),
+                          topics: plural(m.counts.topics, s.topics.size),
+                          textbooks: plural(m.counts.textbooks, s.textbooks.size),
+                        })
+                      : null}
                   </span>
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />

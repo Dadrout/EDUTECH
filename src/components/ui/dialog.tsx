@@ -1,5 +1,6 @@
 "use client";
 
+import { i18n } from "@/i18n/core";
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
@@ -46,7 +47,7 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
         {children}
         <DialogPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring/40 focus:outline-hidden [&_svg]:size-4">
           <XIcon />
-          <span className="sr-only">Закрыть</span>
+          <span className="sr-only">{i18n().m.common.close}</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>

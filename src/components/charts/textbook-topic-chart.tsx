@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Legend } from "@/components/common/blocks";
-import { formatInt, formatPct } from "@/lib/format";
+import { formatInt, formatPct, formatPercentValue } from "@/lib/format";
+import { i18n } from "@/i18n/core";
 import { AXIS_TICK, ChartTooltipCard, TooltipRow } from "./chart-tooltip";
 import { useNarrow } from "./use-narrow";
 
@@ -40,7 +41,7 @@ export function TextbookTopicChart({ data, series }: { data: TextbookTopicDatum[
 
   return (
     <div className="grid gap-3">
-      <div style={{ height }} role="img" aria-label="Успешность по темам на общих заданиях для каждого учебника">
+      <div style={{ height }} role="img" aria-label={i18n().m.charts.textbookTopicsAria}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }} barCategoryGap={10} barGap={2}>
             <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
@@ -48,7 +49,7 @@ export function TextbookTopicChart({ data, series }: { data: TextbookTopicDatum[
               type="number"
               domain={[0, 100]}
               ticks={[0, 20, 40, 60, 80, 100]}
-              tickFormatter={(v: number) => `${v}%`}
+              tickFormatter={(v: number) => formatPercentValue(v)}
               tick={AXIS_TICK}
               axisLine={{ stroke: "var(--chart-axis)" }}
               tickLine={false}
@@ -78,9 +79,9 @@ export function TextbookTopicChart({ data, series }: { data: TextbookTopicDatum[
                 return (
                   <ChartTooltipCard title={row.topicName}>
                     {series.map((s) => (
-                      <TooltipRow key={s.id} color={s.color} label={s.name} value={`${formatPct(row.raw[s.id]?.rate ?? null)} · ${formatInt(row.raw[s.id]?.students ?? 0)} уч.`} />
+                      <TooltipRow key={s.id} color={s.color} label={s.name} value={i18n().t(i18n().m.charts.textbookTopicValue, { rate: formatPct(row.raw[s.id]?.rate ?? null), students: formatInt(row.raw[s.id]?.students ?? 0) })} />
                     ))}
-                    <div className="pt-1 text-[11px]">По {row.commonQuestions} общим заданиям</div>
+                    <div className="pt-1 text-[11px]">{i18n().t(i18n().m.charts.commonQuestions, { n: row.commonQuestions })}</div>
                   </ChartTooltipCard>
                 );
               }}

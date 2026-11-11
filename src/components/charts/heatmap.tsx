@@ -5,7 +5,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { HeatmapData } from "@/lib/analytics/heatmap";
 import { divergingColor, readableTextOn, DIVERGING, mixOklab } from "@/lib/color";
 import type { MasteryThresholds } from "@/lib/config/analysis-config";
-import { formatInt, formatPct, formatPp } from "@/lib/format";
+import { formatInt, formatPct, formatPercentValue, formatPp } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 
 function Cell({
@@ -25,7 +27,7 @@ function Cell({
 }) {
   if (rate === null) {
     return (
-      <div className="flex h-11 items-center justify-center rounded-[5px] bg-secondary/60 text-xs text-muted-foreground" aria-label={`${label}: нет данных`}>
+      <div className="flex h-11 items-center justify-center rounded-[5px] bg-secondary/60 text-xs text-muted-foreground" aria-label={i18n().t(i18n().m.heatmap.noData, { label })}>
         —
       </div>
     );
@@ -37,7 +39,7 @@ function Cell({
       <TooltipTrigger asChild>
         <button
           type="button"
-          aria-label={`${label}: ${formatPct(rate, 0)}${sufficient ? "" : ", мало данных"}`}
+          aria-label={`${label}: ${formatPct(rate, 0)}${sufficient ? "" : i18n().m.heatmap.fewData}`}
           className={cn(
             "relative flex h-11 w-full items-center justify-center rounded-[5px] text-[13px] tabular outline-none transition-shadow hover:ring-2 hover:ring-foreground/70 focus-visible:ring-2 focus-visible:ring-foreground",
             emphasis ? "font-semibold" : "font-medium",
@@ -56,14 +58,15 @@ function Cell({
 /** Тепловая карта «класс × тема» с итогами по строкам и столбцам. */
 export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: MasteryThresholds }) {
   const cols = data.columns.length;
+  const { m, t } = useI18n();
   const template = `minmax(132px, 168px) repeat(${cols}, minmax(64px, 1fr)) minmax(64px, 76px)`;
 
   return (
     <div className="overflow-x-auto">
-      <div role="table" aria-label="Успешность по классам и темам" className="grid min-w-max gap-1 p-4 text-xs" style={{ gridTemplateColumns: template }}>
+      <div role="table" aria-label={m.heatmap.tableLabel} className="grid min-w-max gap-1 p-4 text-xs" style={{ gridTemplateColumns: template }}>
         <div role="row" className="contents">
           <div role="columnheader" className="flex items-end pb-1 text-xs font-medium text-muted-foreground">
-            Класс
+            {m.heatmap.classCol}
           </div>
           {data.columns.map((c) => (
             <div role="columnheader" key={c.key} className="flex items-end px-0.5 pb-1" title={c.topicName}>
@@ -71,7 +74,7 @@ export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: M
             </div>
           ))}
           <div role="columnheader" className="flex items-end pb-1 text-[11px] font-medium text-muted-foreground">
-            Все темы
+            {m.heatmap.allTopics}
           </div>
         </div>
 
@@ -98,14 +101,14 @@ export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: M
                           <div className="font-medium">
                             {row.classId} · {col.topicName}
                           </div>
-                          <div>Успешность: {formatPct(cell.rate)}</div>
+                          <div>{t(m.heatmap.cellRate, { rate: formatPct(cell.rate) })}</div>
                           <div>
-                            Отклонение от параллели: {formatPp(cell.deltaFromTopic)}
+                            {t(m.heatmap.cellDelta, { pp: formatPp(cell.deltaFromTopic) })}
                           </div>
                           <div>
-                            {formatInt(cell.students)} уч. · {formatInt(cell.answers)} отв.
+                            {t(m.heatmap.cellCounts, { students: cell.students, answers: cell.answers })}
                           </div>
-                          {!cell.sufficient ? <div className="pt-0.5 font-medium">Мало учеников — вывод ненадёжен.</div> : null}
+                          {!cell.sufficient ? <div className="pt-0.5 font-medium">{m.heatmap.unreliable}</div> : null}
                         </div>
                       ) : null
                     }
@@ -119,10 +122,10 @@ export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: M
                 sufficient
                 emphasis
                 thresholds={thresholds}
-                label={`${row.classId}, все темы`}
+                label={t(m.heatmap.classAll, { classId: row.classId })}
                 details={
                   <div>
-                    {row.classId}: {formatPct(row.rate)} по всем темам · {formatInt(row.students)} уч.
+                    {t(m.heatmap.classSummary, { classId: row.classId, rate: formatPct(row.rate), students: formatInt(row.students) })}
                   </div>
                 }
               />
@@ -132,11 +135,11 @@ export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: M
 
         <div role="row" className="contents">
           <div role="rowheader" className="flex items-center pr-2 text-[13px] font-semibold">
-            Параллель
+            {m.heatmap.parallel}
           </div>
           {data.columns.map((c) => (
             <div role="cell" key={c.key} className="border-t pt-1">
-              <Cell rate={c.rate} sufficient emphasis thresholds={thresholds} label={`Параллель, ${c.topicName}`} details={<div>{c.topicName}: {formatPct(c.rate)} по параллели</div>} />
+              <Cell rate={c.rate} sufficient emphasis thresholds={thresholds} label={t(m.heatmap.parallelCell, { topic: c.topicName })} details={<div>{t(m.heatmap.parallelSummary, { topic: c.topicName, rate: formatPct(c.rate) })}</div>} />
             </div>
           ))}
           <div role="cell" className="border-t pt-1" />
@@ -155,6 +158,7 @@ export function HeatmapLegend({ thresholds }: { thresholds: MasteryThresholds })
     return divergingColor(pct / 100, thresholds);
   });
   const pos = (v: number) => `${((v - low) / (100 - low)) * 100}%`;
+  const { m } = useI18n();
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
       <div className="w-64 max-w-full">
@@ -162,17 +166,18 @@ export function HeatmapLegend({ thresholds }: { thresholds: MasteryThresholds })
         <div className="relative mt-1 h-4 tabular">
           {[low, thresholds.medium, mid, thresholds.high, 100].map((v) => (
             <span key={v} className="absolute -translate-x-1/2 text-[10px]" style={{ left: pos(v) }}>
-              {Math.round(v)}%
+              {formatPercentValue(Math.round(v))}
             </span>
           ))}
         </div>
       </div>
       <span className="flex items-center gap-1.5">
         <span className="hatch inline-block size-3 rounded-[3px] border" style={{ background: mixOklab(DIVERGING.mid, DIVERGING.pos, 0.2) }} aria-hidden />
-        мало учеников в ячейке
+        {m.heatmap.legendFew}
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="inline-block size-3 rounded-[3px] bg-secondary" aria-hidden />— класс не писал тест по теме
+        <span className="inline-block size-3 rounded-[3px] bg-secondary" aria-hidden />
+        {m.heatmap.legendNone}
       </span>
     </div>
   );
