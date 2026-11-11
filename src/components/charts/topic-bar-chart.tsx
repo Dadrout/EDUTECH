@@ -88,15 +88,15 @@ export function TopicBarChart({
           />
           <ReferenceLine
             x={thresholds.medium}
-            stroke="var(--level-low)"
-            strokeOpacity={0.55}
+            stroke="var(--chart-ink)"
+            strokeOpacity={0.6}
             strokeDasharray="4 3"
             label={{ value: `${thresholds.medium}%`, position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
           />
           <ReferenceLine
             x={thresholds.high}
-            stroke="var(--level-high)"
-            strokeOpacity={0.6}
+            stroke="var(--chart-ink)"
+            strokeOpacity={0.35}
             strokeDasharray="4 3"
             label={{ value: `${thresholds.high}%`, position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
           />

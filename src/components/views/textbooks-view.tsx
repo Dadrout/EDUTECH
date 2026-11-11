@@ -79,7 +79,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
     <div className="grid grid-cols-1 gap-5">
       <div className="flex flex-col gap-4 rounded-xl border bg-card px-5 py-4 lg:flex-row lg:items-end lg:justify-between">
         <fieldset>
-          <legend className="mb-2 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Учебники для сравнения</legend>
+          <legend className="mb-2 text-xs font-medium text-muted-foreground">Учебники для сравнения</legend>
           <div className="flex flex-wrap gap-x-5 gap-y-2">
             {allTextbooks.map((t) => {
               const checked = selected.includes(t.id);
@@ -97,8 +97,8 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
             })}
           </div>
         </fieldset>
-        <div className="flex min-w-0 flex-col gap-1 lg:w-72">
-          <label htmlFor="reference" className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+        <div className="flex min-w-0 flex-col gap-1 lg:w-80">
+          <label htmlFor="reference" className="text-xs font-medium text-muted-foreground">
             Базовый учебник (с ним сравниваются остальные)
           </label>
           <Select value={reference} onValueChange={setReferenceId} disabled={selectedIds.length < 2}>

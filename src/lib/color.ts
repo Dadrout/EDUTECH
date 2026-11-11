@@ -71,7 +71,7 @@ export function readableTextOn(background: string, dark = "#111216", light = "#f
 }
 
 // Значения совпадают с токенами --div-* в globals.css.
-export const DIVERGING = { neg: "#c22e2a", mid: "#efeeea", pos: "#1a56a0" } as const;
+export const DIVERGING = { neg: "#c22e2a", mid: "#eceef1", pos: "#1a56a0" } as const;
 
 /**
  * Цвет ячейки тепловой карты по успешности (0..1).

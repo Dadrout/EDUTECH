@@ -9,7 +9,7 @@ import type { MasteryThresholds } from "@/lib/config/analysis-config";
 import { countLabel, formatPct } from "@/lib/format";
 
 const LEVELS = ["high", "medium", "low"] as const;
-const INSIDE_LABEL = { high: "#ffffff", medium: "#111216", low: "#ffffff" } as const;
+const INSIDE_LABEL = { high: "#ffffff", medium: "#12141a", low: "#ffffff" } as const;
 
 /**
  * Распределение учеников по уровням освоения для каждого предмета —

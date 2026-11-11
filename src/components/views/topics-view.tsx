@@ -140,7 +140,7 @@ function TopicsContent() {
           aria-pressed={statusFilter === "all"}
           className={cn(
             "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
-            statusFilter === "all" ? "border-foreground bg-foreground text-background" : "bg-card hover:bg-accent",
+            statusFilter === "all" ? "border-primary bg-accent text-foreground" : "bg-card hover:bg-secondary",
           )}
         >
           Все темы <span className="tabular opacity-70">{topics.length}</span>
@@ -158,15 +158,15 @@ function TopicsContent() {
               title={meta.hint}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:opacity-40",
-                active ? "border-foreground bg-foreground text-background" : "bg-card hover:bg-accent",
+                active ? "border-primary bg-accent text-foreground" : "bg-card hover:bg-secondary",
               )}
             >
               <meta.Icon
                 className={cn(
                   "size-3.5",
-                  !active && meta.variant === "low" && "text-level-low",
-                  !active && meta.variant === "medium" && "text-level-medium-fg",
-                  !active && meta.variant === "high" && "text-level-high",
+                  meta.variant === "low" && "text-level-low",
+                  meta.variant === "medium" && "text-level-medium-fg",
+                  meta.variant === "high" && "text-level-high",
                 )}
                 aria-hidden
               />
@@ -274,7 +274,7 @@ function TopicsContent() {
                     className={cn("cursor-pointer transition-colors hover:bg-muted/50", problem && "bg-level-low-bg/45 hover:bg-level-low-bg/70")}
                     onClick={() => setSelectedKey(t.key)}
                   >
-                    <td className={cn("py-2.5 pr-3 pl-5", problem && "shadow-[inset_3px_0_0_var(--level-low)]")}>
+                    <td className="py-2.5 pr-3 pl-5">
                       <button type="button" className="text-left font-medium outline-none hover:underline focus-visible:underline" onClick={() => setSelectedKey(t.key)}>
                         {t.topicName}
                       </button>

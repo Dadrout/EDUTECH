@@ -3,14 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertOctagon, AlertTriangle, ArrowRight, BookOpen, FlaskConical, Info, Percent, School, Users, type LucideIcon } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ArrowRight, FlaskConical, Info, type LucideIcon } from "lucide-react";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, KpiTile, MethodNote, PageHeader, Section } from "@/components/common/blocks";
 import { FilterBar } from "@/components/common/filter-bar";
 import { STATUS_META } from "@/components/common/levels";
 import { LevelDistribution } from "@/components/charts/level-distribution";
 import { TopicBarChart } from "@/components/charts/topic-bar-chart";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/misc";
 import { Button } from "@/components/ui/button";
 import { filterRecords } from "@/lib/analytics/filters";
 import { computeInsights, type Insight, type InsightSeverity } from "@/lib/analytics/insights";
@@ -22,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 
 const MAX_CHART_TOPICS = 15;
+/** Сколько проблем показывать до раскрытия списка: самые важные идут первыми. */
+const INSIGHTS_PREVIEW = 5;
 
 const SEVERITY: Record<InsightSeverity, { Icon: LucideIcon; className: string; label: string }> = {
   critical: { Icon: AlertOctagon, className: "text-level-low", label: "Критично" },
@@ -33,18 +34,17 @@ export function SyntheticNotice() {
   const { dataset } = useReadyData();
   if (!dataset.meta.isSynthetic) return null;
   return (
-    <Alert variant="info">
-      <FlaskConical aria-hidden />
-      <AlertTitle>Демонстрационный режим: синтетические данные</AlertTitle>
-      <AlertDescription>
-        <p>
-          Результаты 300 учеников сгенерированы для показа возможностей платформы и не относятся к реальным школам, ученикам или издательствам.{" "}
-          <Link href="/data" className="font-medium text-primary underline-offset-4 hover:underline">
-            Загрузить собственные данные
-          </Link>
-        </p>
-      </AlertDescription>
-    </Alert>
+    // Пунктир — тот же знак «не окончательно», что и у статуса «Вероятно сложная».
+    <div role="note" className="flex items-start gap-2 rounded-lg border border-dashed border-input px-3 py-2 text-[13px] leading-relaxed text-muted-foreground">
+      <FlaskConical className="mt-[3px] size-3.5 shrink-0" aria-hidden />
+      <p>
+        <span className="font-medium text-foreground">Демонстрационный режим:</span> синтетические результаты 300 учеников, не относятся к реальным школам, ученикам или
+        издательствам.{" "}
+        <Link href="/data" className="font-medium whitespace-nowrap text-primary underline-offset-4 hover:underline">
+          Загрузить собственные данные
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -143,6 +143,10 @@ function OverviewContent() {
     return c;
   }, [topicStats]);
 
+  const [allInsights, setAllInsights] = React.useState(false);
+  const shownInsights = allInsights ? insights : insights.slice(0, INSIGHTS_PREVIEW);
+  const hiddenInsights = insights.length - INSIGHTS_PREVIEW;
+
   const k = overview.kpis;
 
   if (records.length === 0) {
@@ -155,81 +159,101 @@ function OverviewContent() {
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border shadow-[0_1px_2px_rgba(16,17,20,0.04)] md:grid-cols-5 [&>*:last-child]:col-span-2 md:[&>*:last-child]:col-span-1">
-        <KpiTile icon={Users} label="Учеников" value={formatInt(k.students)} sub={`${formatInt(k.answers)} ответов`} />
-        <KpiTile icon={School} label="Классов" value={formatInt(k.classes)} sub={countLabel(k.textbooks, ["учебник", "учебника", "учебников"])} />
-        <KpiTile icon={BookOpen} label="Учебных тем" value={formatInt(k.topics)} sub={countLabel(k.tests, ["тест", "теста", "тестов"])} />
-        <KpiTile icon={Percent} label="Средний результат" value={formatPct(k.estimate?.rate)} sub={`95% ДИ ${formatCi(k.estimate?.ciLow, k.estimate?.ciHigh)}`} />
+      {/* Сначала выводы (результат, проблемные темы), затем объём данных, на котором они получены. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
+        <KpiTile label="Средний результат" value={formatPct(k.estimate?.rate)} sub={`95% ДИ ${formatCi(k.estimate?.ciLow, k.estimate?.ciHigh)}`} />
         <KpiTile
-          icon={AlertOctagon}
           tone={k.problemTopics > 0 ? "low" : "default"}
           label="Проблемных тем"
           value={formatInt(k.problemTopics)}
           sub={`ниже ${config.thresholds.medium}%${k.insufficientTopics ? ` · ${k.insufficientTopics} без выводов` : ""}`}
         />
+        <dl className="col-span-2 grid grid-cols-[auto_auto_minmax(0,1fr)] content-center items-baseline gap-x-4 gap-y-1 bg-card px-5 py-4 text-[13px] lg:col-span-1">
+          <dt className="text-muted-foreground">Учеников</dt>
+          <dd className="text-right font-semibold tabular">{formatInt(k.students)}</dd>
+          <dd className="truncate text-muted-foreground tabular">{formatInt(k.answers)} ответов</dd>
+          <dt className="text-muted-foreground">Классов</dt>
+          <dd className="text-right font-semibold tabular">{formatInt(k.classes)}</dd>
+          <dd className="truncate text-muted-foreground tabular">{countLabel(k.textbooks, ["учебник", "учебника", "учебников"])}</dd>
+          <dt className="text-muted-foreground">Учебных тем</dt>
+          <dd className="text-right font-semibold tabular">{formatInt(k.topics)}</dd>
+          <dd className="truncate text-muted-foreground tabular">{countLabel(k.tests, ["тест", "теста", "тестов"])}</dd>
+        </dl>
       </div>
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <Section
-          title="Успешность по темам"
-          description={
-            topicStats.length > MAX_CHART_TOPICS
-              ? `Показаны ${MAX_CHART_TOPICS} тем с наименьшей успешностью из ${topicStats.length}. Уточните фильтр или откройте анализ тем.`
-              : "Доля правильных ответов по каждой теме, от сложных к освоенным."
-          }
-          actions={
-            <>
-              <MethodNote>
-                <p>
-                  <b>Успешность темы</b> — доля правильных ответов на все задания темы: верных ответов / всех ответов.
-                </p>
-                <p>
-                  Цвет — уровень освоения: высокий от {config.thresholds.high}%, средний от {config.thresholds.medium}%, ниже — низкий. Пороги настраиваются в «Параметрах анализа».
-                </p>
-                <p>Серым показаны темы, по которым мало данных для вывода.</p>
-              </MethodNote>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/topics">Анализ тем</Link>
-              </Button>
-            </>
-          }
-        >
-          <div className="px-3 py-4 sm:px-5">
-            <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel="Успешность по темам" />
-          </div>
-        </Section>
+        <div className="grid grid-cols-1 gap-5">
+          <Section
+            title="Успешность по темам"
+            description={
+              topicStats.length > MAX_CHART_TOPICS
+                ? `Показаны ${MAX_CHART_TOPICS} тем с наименьшей успешностью из ${topicStats.length}. Уточните фильтр или откройте анализ тем.`
+                : "Доля правильных ответов по каждой теме, от сложных к освоенным."
+            }
+            actions={
+              <>
+                <MethodNote>
+                  <p>
+                    <b>Успешность темы</b> — доля правильных ответов на все задания темы: верных ответов / всех ответов.
+                  </p>
+                  <p>
+                    Цвет — уровень освоения: высокий от {config.thresholds.high}%, средний от {config.thresholds.medium}%, ниже — низкий. Пороги настраиваются в «Параметрах анализа».
+                  </p>
+                  <p>Серым показаны темы, по которым мало данных для вывода.</p>
+                </MethodNote>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/topics">Анализ тем</Link>
+                </Button>
+              </>
+            }
+          >
+            <div className="px-3 py-4 sm:px-5">
+              <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel="Успешность по темам" />
+            </div>
+          </Section>
+          <Section
+            title="Темы по статусу сложности"
+            description={k.dateFrom ? `Тестирование: ${formatDate(k.dateFrom)} — ${formatDate(k.dateTo)}` : undefined}
+          >
+            <div className="px-5 py-2">
+              <StatusSummary counts={statusCounts} />
+            </div>
+          </Section>
+        </div>
 
         <Section title="Основные выявленные проблемы" description="Правила применяются к отфильтрованным данным.">
           {insights.length === 0 ? (
             <EmptyState icon={Info} title="Проблем не выявлено" description="Для выбранных фильтров нет тем и классов, требующих внимания." />
           ) : (
-            <ul className="divide-y">
-              {insights.map((i) => (
-                <InsightItem key={i.id} insight={i} />
-              ))}
-            </ul>
+            <>
+              <ul className="divide-y">
+                {shownInsights.map((i) => (
+                  <InsightItem key={i.id} insight={i} />
+                ))}
+              </ul>
+              {hiddenInsights > 0 ? (
+                <button
+                  type="button"
+                  aria-expanded={allInsights}
+                  onClick={() => setAllInsights((v) => !v)}
+                  className="w-full rounded-b-xl border-t px-5 py-2.5 text-left text-[13px] font-medium text-primary outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:ring-inset"
+                >
+                  {allInsights ? "Свернуть список" : `Показать ещё ${hiddenInsights}`}
+                </button>
+              ) : null}
+            </>
           )}
         </Section>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <Section
-          title="Распределение результатов по предметам"
-          description={`Доля учеников по уровню освоения (учитываются ученики с ${config.minAnswersPerStudent}+ ответами по предмету).`}
-        >
-          <div className="px-5 py-5">
-            <LevelDistribution subjects={overview.subjects} thresholds={config.thresholds} />
-          </div>
-        </Section>
-        <Section
-          title="Темы по статусу сложности"
-          description={k.dateFrom ? `Тестирование: ${formatDate(k.dateFrom)} — ${formatDate(k.dateTo)}` : undefined}
-        >
-          <div className="px-5 py-2">
-            <StatusSummary counts={statusCounts} />
-          </div>
-        </Section>
-      </div>
+      <Section
+        title="Распределение результатов по предметам"
+        description={`Доля учеников по уровню освоения (учитываются ученики с ${config.minAnswersPerStudent}+ ответами по предмету).`}
+      >
+        <div className="px-5 py-5">
+          <LevelDistribution subjects={overview.subjects} thresholds={config.thresholds} />
+        </div>
+      </Section>
     </div>
   );
 }

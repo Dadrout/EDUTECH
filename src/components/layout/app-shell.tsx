@@ -32,13 +32,13 @@ const DATA_NAV: NavItem[] = [
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground" aria-hidden>
-        <svg viewBox="0 0 20 20" className="size-[18px]" fill="none">
-          <rect x="3" y="10" width="3" height="7" rx="1" fill="currentColor" opacity="0.55" />
-          <rect x="8.5" y="6" width="3" height="11" rx="1" fill="currentColor" opacity="0.8" />
-          <rect x="14" y="3" width="3" height="14" rx="1" fill="currentColor" />
-        </svg>
-      </span>
+      {/* Столбцы и линия порога: тема либо дотягивает до нормы, либо нет. */}
+      <svg viewBox="0 0 20 20" className="size-6 shrink-0" fill="none" aria-hidden>
+        <rect x="2.5" y="12" width="3.5" height="6" rx="0.75" className="fill-level-low" />
+        <rect x="8.25" y="5.5" width="3.5" height="12.5" rx="0.75" className="fill-primary" />
+        <rect x="14" y="2.5" width="3.5" height="15.5" rx="0.75" className="fill-primary" />
+        <path d="M1 9.25h18" className="stroke-foreground" strokeWidth="1.25" />
+      </svg>
       <span className="leading-tight">
         <span className="block text-[13px] font-semibold tracking-tight">Data-Driven Curriculum</span>
         <span className="block text-[11px] text-muted-foreground">Аналитика для методистов</span>
@@ -61,7 +61,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/30",
-                active ? "bg-card text-foreground shadow-[0_0_0_1px_var(--border),0_1px_2px_rgba(16,17,20,0.05)]" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
               <item.icon className={cn("size-4", active ? "text-primary" : "")} aria-hidden />
@@ -77,7 +77,7 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
 function DatasetStatus() {
   const { dataset, status } = useData();
   if (!dataset) {
-    return <div className="rounded-lg border bg-card px-3 py-2.5 text-xs text-muted-foreground">{status === "error" ? "Данные не загружены" : "Загрузка данных…"}</div>;
+    return <div className="px-2.5 py-2 text-xs text-muted-foreground">{status === "error" ? "Данные не загружены" : "Загрузка данных…"}</div>;
   }
   return <DatasetStatusCard dataset={dataset} />;
 }
@@ -85,7 +85,7 @@ function DatasetStatus() {
 function DatasetStatusCard({ dataset }: { dataset: NonNullable<ReturnType<typeof useData>["dataset"]> }) {
   const students = React.useMemo(() => new Set(dataset.records.map((r) => r.studentId)).size, [dataset.records]);
   return (
-    <Link href="/data" className="block rounded-lg border bg-card px-3 py-2.5 text-xs outline-none hover:border-input focus-visible:ring-[3px] focus-visible:ring-ring/30">
+    <Link href="/data" className="block rounded-md px-2.5 py-2 text-xs outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30">
       <div className="flex items-center gap-1.5 font-medium">
         <span className={cn("size-1.5 rounded-full", dataset.meta.isSynthetic ? "bg-level-medium" : "bg-level-high")} aria-hidden />
         {dataset.meta.isSynthetic ? "Демо: синтетические данные" : "Загруженные данные"}
@@ -103,15 +103,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <Logo />
       <nav aria-label="Основная навигация" className="grid gap-5">
         <div>
-          <div className="mb-1.5 px-2.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Аналитика</div>
+          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">Аналитика</div>
           <NavLinks items={ANALYTICS_NAV} onNavigate={onNavigate} />
         </div>
         <div>
-          <div className="mb-1.5 px-2.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Данные</div>
+          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">Данные</div>
           <NavLinks items={DATA_NAV} onNavigate={onNavigate} />
         </div>
       </nav>
-      <div className="mt-auto grid gap-2">
+      <div className="mt-auto grid gap-1 border-t border-sidebar-border pt-3">
         <SettingsDialog
           trigger={
             <button
@@ -137,7 +137,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <SidebarContent />
       </aside>
       <div className="min-w-0">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background/90 px-4 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
           <Logo />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>

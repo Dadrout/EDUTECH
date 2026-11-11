@@ -3,49 +3,51 @@
 
 /*
  * Дизайн-токены Data-Driven Curriculum.
- * Светлая тема (проектор, печать отчётов). Цвета графиков взяты из
- * проверенной на дальтонизм палитры; уровни освоения — статусные цвета,
- * которые всегда сопровождаются иконкой и подписью.
+ * Светлая тема (проектор, печать отчётов). Нейтральные цвета холодные, в тон
+ * основному синему. Цвет несёт смысл: уровни освоения, учебники, тепловая карта;
+ * интерфейс вокруг данных остаётся нейтральным. Цвета графиков взяты из
+ * проверенной на дальтонизм палитры; уровни освоения всегда сопровождаются
+ * иконкой и подписью.
  */
 :root {
   color-scheme: light;
   --radius: 0.5rem;
 
-  --background: #f6f6f3;
-  --foreground: #111216;
+  --background: #f4f5f7;
+  --foreground: #12141a;
   --card: #ffffff;
-  --card-foreground: #111216;
+  --card-foreground: #12141a;
   --popover: #ffffff;
-  --popover-foreground: #111216;
+  --popover-foreground: #12141a;
   --primary: #1c5cab;
   --primary-foreground: #ffffff;
-  --secondary: #eeeeea;
-  --secondary-foreground: #1b1c20;
-  --muted: #f0f0ec;
-  --muted-foreground: #5c5e64;
-  --accent: #edf2fa;
-  --accent-foreground: #111216;
+  --secondary: #eceef2;
+  --secondary-foreground: #1a1d24;
+  --muted: #eef0f3;
+  --muted-foreground: #575e6b;
+  --accent: #e9eff9;
+  --accent-foreground: #12141a;
   --destructive: #c42f2f;
-  --border: #e2e2dc;
-  --input: #d6d6cf;
+  --border: #dfe3e9;
+  --input: #c5ccd6;
   --ring: #2a78d6;
 
-  --sidebar: #fbfbf9;
-  --sidebar-border: #e6e6e0;
+  --sidebar: #fafbfc;
+  --sidebar-border: #e3e6eb;
 
   /* Уровни освоения (статус): метка + иконка + цвет */
-  --level-high: #0ca30c;
-  --level-high-bg: #e7f5e7;
-  --level-high-fg: #0a5f0a;
-  --level-medium: #f0a500;
-  --level-medium-bg: #fdf3da;
-  --level-medium-fg: #6f4a00;
-  --level-low: #d03b3b;
-  --level-low-bg: #fbe9e8;
-  --level-low-fg: #a01f1f;
-  --level-none: #b8b6af;
-  --level-none-bg: #efeeea;
-  --level-none-fg: #52514e;
+  --level-high: #2c8442;
+  --level-high-bg: #e6f3e9;
+  --level-high-fg: #1d5e2e;
+  --level-medium: #e09a14;
+  --level-medium-bg: #fcf2dc;
+  --level-medium-fg: #6b4800;
+  --level-low: #c93b32;
+  --level-low-bg: #fbe9e7;
+  --level-low-fg: #9e2219;
+  --level-none: #b5bac3;
+  --level-none-bg: #eceef1;
+  --level-none-fg: #4f5562;
 
   /* Категориальная палитра: цвет закреплён за учебником, а не за позицией */
   --series-1: #2a78d6;
@@ -58,18 +60,18 @@
   --series-8: #e34948;
 
   /* Оформление графиков */
-  --chart-grid: #ebeae5;
-  --chart-axis: #c3c2b7;
-  --chart-ink: #52514e;
-  --chart-muted: #898781;
-  --chart-neutral: #c9c7bf;
+  --chart-grid: #e8eaee;
+  --chart-axis: #c1c6cf;
+  --chart-ink: #4f5562;
+  --chart-muted: #6f7684;
+  --chart-neutral: #c4c9d1;
 
   /* Расходящаяся шкала тепловой карты: красный ← серый → синий */
   --div-neg: #c22e2a;
-  --div-mid: #efeeea;
+  --div-mid: #eceef1;
   --div-pos: #1a56a0;
 
-  --success-ink: #0a6b0a;
+  --success-ink: #1d6b32;
 }
 
 @theme inline {

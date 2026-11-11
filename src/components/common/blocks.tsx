@@ -9,17 +9,14 @@ export function PageHeader({
   title,
   description,
   actions,
-  eyebrow,
 }: {
   title: string;
   description?: React.ReactNode;
   actions?: React.ReactNode;
-  eyebrow?: React.ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        {eyebrow ? <div className="mb-1.5 text-xs font-medium text-muted-foreground">{eyebrow}</div> : null}
         <h1 className="text-[22px] leading-tight font-semibold tracking-[-0.01em] text-balance sm:text-2xl">{title}</h1>
         {description ? <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
@@ -44,7 +41,7 @@ export function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={cn("rounded-xl border bg-card shadow-[0_1px_2px_rgba(16,17,20,0.04)]", className)}>
+    <section id={id} className={cn("rounded-xl border bg-card", className)}>
       <div className="flex flex-col gap-2 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-[15px] leading-snug font-semibold">{title}</h2>
@@ -78,37 +75,32 @@ export function MethodNote({ title = "Как рассчитано", children, cl
   );
 }
 
+/** Показатель-вывод. Цвет получает только значение, которое требует действия. */
 export function KpiTile({
   label,
   value,
   sub,
   tone = "default",
-  icon: Icon,
 }: {
   label: string;
   value: React.ReactNode;
   sub?: React.ReactNode;
   tone?: "default" | "low" | "medium" | "high";
-  icon?: LucideIcon;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 bg-card px-4 py-3.5">
-      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        {Icon ? (
-          <Icon
-            className={cn(
-              "size-3.5",
-              tone === "low" && "text-level-low",
-              tone === "medium" && "text-level-medium-fg",
-              tone === "high" && "text-level-high",
-            )}
-            aria-hidden
-          />
-        ) : null}
-        {label}
+    <div className="flex min-w-0 flex-col gap-1.5 bg-card px-5 py-4">
+      <div className="text-[13px] font-medium text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "text-[28px] leading-none font-semibold tracking-[-0.02em] tabular",
+          tone === "low" && "text-level-low-fg",
+          tone === "medium" && "text-level-medium-fg",
+          tone === "high" && "text-level-high-fg",
+        )}
+      >
+        {value}
       </div>
-      <div className="text-[26px] leading-none font-semibold tracking-[-0.02em]">{value}</div>
-      {sub ? <div className="truncate text-xs text-muted-foreground">{sub}</div> : null}
+      {sub ? <div className="text-xs text-pretty text-muted-foreground">{sub}</div> : null}
     </div>
   );
 }
@@ -128,9 +120,7 @@ export function EmptyState({
 }) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-2 px-6 py-12 text-center", className)}>
-      <div className="mb-1 flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-        <Icon className="size-5" aria-hidden />
-      </div>
+      <Icon className="mb-1 size-5 text-muted-foreground" aria-hidden />
       <div className="text-sm font-semibold">{title}</div>
       {description ? <div className="max-w-md text-[13px] leading-relaxed text-muted-foreground">{description}</div> : null}
       {action ? <div className="mt-2">{action}</div> : null}

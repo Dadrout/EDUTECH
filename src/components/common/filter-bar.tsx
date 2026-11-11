@@ -41,7 +41,7 @@ function FilterSelect<T extends string | number>({
   const id = `filter-${field}-${React.useId()}`;
   return (
     <div className={cn("flex min-w-0 flex-col gap-1", meta.width)}>
-      <label htmlFor={id} className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+      <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
         {meta.label}
       </label>
       <Select
@@ -97,7 +97,7 @@ export function FilterBar({
   const set = <K extends keyof DataFilters>(key: K, value: DataFilters[K]) => setFilters({ [key]: value } as Partial<DataFilters>);
 
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end", className)} data-print-hide>
+    <div className={cn("grid grid-cols-2 gap-x-3 gap-y-2.5 sm:flex sm:flex-row sm:flex-wrap sm:items-end", className)} data-print-hide>
       {fields.includes("subject") ? (
         <FilterSelect field="subject" value={filters.subject} options={options.subjects} onChange={(v) => set("subject", v)} allowAll />
       ) : null}
@@ -118,7 +118,7 @@ export function FilterBar({
         <Button
           variant="ghost"
           size="sm"
-          className="self-start text-muted-foreground sm:self-end"
+          className="col-span-2 justify-self-start text-muted-foreground sm:col-auto"
           onClick={() => setFilters(Object.fromEntries(fields.map((f) => [f, null])) as Partial<DataFilters>)}
         >
           <RotateCcw aria-hidden />

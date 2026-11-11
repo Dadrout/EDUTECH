@@ -41,9 +41,9 @@ export function MethodologyView() {
         actions={<SettingsDialog />}
       />
 
-      <nav aria-label="Содержание" className="flex flex-wrap gap-2">
+      <nav aria-label="Содержание" className="-mx-2 flex flex-wrap gap-x-1 gap-y-0.5">
         {TOC.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="rounded-full border bg-card px-3 py-1 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
+          <a key={id} href={`#${id}`} className="rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/30">
             {label}
           </a>
         ))}

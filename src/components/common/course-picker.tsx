@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight, Layers } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useReadyData } from "@/providers/data-provider";
 
 /**
@@ -31,10 +31,7 @@ export function CoursePicker({ reason }: { reason: string }) {
 
   return (
     <div className="rounded-xl border bg-card">
-      <div className="flex items-start gap-3 border-b px-5 py-4">
-        <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent text-primary">
-          <Layers className="size-4" aria-hidden />
-        </div>
+      <div className="border-b px-5 py-4">
         <div>
           <div className="text-sm font-semibold">Выберите предмет и параллель</div>
           <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{reason}</p>

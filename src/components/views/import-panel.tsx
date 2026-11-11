@@ -45,7 +45,7 @@ function Dropzone({ onFile, busy, kind }: { onFile: (file: File) => void; busy: 
         over ? "border-primary bg-accent" : "border-input bg-muted/30",
       )}
     >
-      <div className="flex size-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-xs">
+      <div className="flex size-10 items-center justify-center rounded-full bg-card text-muted-foreground">
         {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <FileUp className="size-5" aria-hidden />}
       </div>
       <div className="text-sm font-medium">{kind === "results" ? "Перетащите файл с результатами тестирования" : "Перетащите файл учебного плана"}</div>

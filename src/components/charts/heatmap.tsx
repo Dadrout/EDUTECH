@@ -62,7 +62,7 @@ export function Heatmap({ data, thresholds }: { data: HeatmapData; thresholds: M
     <div className="overflow-x-auto">
       <div role="table" aria-label="Успешность по классам и темам" className="grid min-w-max gap-1 p-4 text-xs" style={{ gridTemplateColumns: template }}>
         <div role="row" className="contents">
-          <div role="columnheader" className="flex items-end pb-1 text-[11px] font-medium text-muted-foreground uppercase">
+          <div role="columnheader" className="flex items-end pb-1 text-xs font-medium text-muted-foreground">
             Класс
           </div>
           {data.columns.map((c) => (
