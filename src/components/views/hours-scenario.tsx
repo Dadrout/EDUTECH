@@ -31,9 +31,13 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
   const { m, t, plural } = useI18n();
   const [custom, setCustom] = React.useState<ScenarioHours>(() => initialScenario(rows, "recommended"));
   const evaluation = React.useMemo(() => evaluateScenario(rows, custom, params), [rows, custom, params]);
-  const step = params.stepHours > 0 ? params.stepHours : 0.5;
+  // Editing is always in half-hours; recommendation step controls transfers only.
+  const step = 0.5;
 
-  const setHours = (key: string, value: number) => setCustom((prev) => ({ ...prev, [key]: snapHours(value, step) }));
+  const setHours = (key: string, value: number) => {
+    const row = rows.find((r) => r.key === key);
+    if (row) setCustom((prev) => ({ ...prev, [key]: Math.max(row.minHours, snapHours(value, step)) }));
+  };
   const errors = evaluation.issues.filter((i) => i.severity === "error");
   const warnings = evaluation.issues.filter((i) => i.severity === "warning");
   const errorKeys = new Set(errors.map((i) => i.key).filter(Boolean));
@@ -41,6 +45,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
   const used = params.budgetHours > 0 ? Math.min(1, s.total / params.budgetHours) : 0;
 
   const exportScenario = () => {
+    if (!evaluation.valid) return;
     const csv = toCsv(
       ["subject", "grade", "topic_id", "topic_name", "min_hours", "current_hours", "recommended_hours", "custom_hours", "change_vs_current"],
       evaluation.rows.map((r) => [subject, grade, r.topicId, r.topicName, r.minHours, r.current, r.recommended, r.custom, r.deltaCurrent]),
@@ -78,7 +83,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
           <Button variant="ghost" size="sm" onClick={() => setCustom(initialScenario(rows, "current"))}>
             {m.scenario.resetCurrent}
           </Button>
-          <Button variant="outline" size="sm" onClick={exportScenario}>
+          <Button variant="outline" size="sm" onClick={exportScenario} disabled={!evaluation.valid}>
             <Download aria-hidden />
             {m.scenario.exportCsv}
           </Button>
@@ -138,12 +143,12 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                   <td className="px-3 py-2.5 text-right text-muted-foreground tabular">{formatHours(r.recommended)}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={m.scenario.decrease} onClick={() => setHours(r.key, r.custom - step)} disabled={r.custom <= 0}>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label={m.scenario.decrease} onClick={() => setHours(r.key, r.custom - step)} disabled={r.custom <= r.minHours}>
                         <Minus aria-hidden />
                       </Button>
                       <input
                         type="range"
-                        min={0}
+                        min={r.minHours}
                         max={max}
                         step={step}
                         value={Math.min(r.custom, max)}
@@ -156,7 +161,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                       </Button>
                       <input
                         type="number"
-                        min={0}
+                        min={r.minHours}
                         step={step}
                         value={r.custom}
                         onChange={(e) => {

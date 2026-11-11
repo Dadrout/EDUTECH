@@ -27,7 +27,9 @@ export type ResultColumnKey =
   | "testId"
   | "questionId"
   | "isCorrect"
-  | "testDate";
+  | "testDate"
+  | "skill"
+  | "errorType";
 
 export type CurriculumColumnKey = "subject" | "grade" | "topicId" | "topicName" | "currentHours" | "minHours";
 
@@ -91,6 +93,16 @@ export const RESULT_COLUMNS: ColumnSpec<ResultColumnKey>[] = [
     key: "testDate", name: "test_date", required: true,
     aliases: ["date", "дата", "дата теста"],
     localAliases: { kk: ["күні", "тест күні"], es: ["fecha"], fr: ["date du test"], de: ["datum"], tr: ["tarih"], uz: ["sana"], zh: ["日期"] },
+  },
+  {
+    key: "skill", name: "skill", required: false,
+    aliases: ["навык", "умение", "skill name"],
+    localAliases: { kk: ["дағды"], en: ["skill name"], es: ["habilidad"], fr: ["compétence"], de: ["fähigkeit"], tr: ["beceri"], uz: ["koʻnikma"], zh: ["技能"] },
+  },
+  {
+    key: "errorType", name: "error_type", required: false,
+    aliases: ["тип ошибки", "ошибка", "error", "error category"],
+    localAliases: { kk: ["қате түрі"], en: ["error category"], es: ["tipo de error"], fr: ["type d’erreur"], de: ["fehlertyp"], tr: ["hata türü"], uz: ["xato turi"], zh: ["错误类型"] },
   },
 ];
 

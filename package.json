@@ -9,8 +9,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "generate:demo": "tsx scripts/generate-demo-data.ts",
-    "test:e2e": "node e2e/smoke.mjs"
+    "generate:demo": "node --import tsx scripts/generate-demo-data.ts",
+    "build:webpack": "next build --webpack",
+    "test:e2e": "node e2e/smoke.mjs && node e2e/analytics-suite.mjs"
   },
   "dependencies": {
     "@fontsource-variable/onest": "^5.3.1",

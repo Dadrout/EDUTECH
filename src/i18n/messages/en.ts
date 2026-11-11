@@ -3,7 +3,7 @@ import type { Messages } from "./ru";
 
 export const en: Messages = {
   common: {
-    appName: "Data-Driven Curriculum",
+    appName: "BilimLens",
     appTagline: "Analytics for curriculum specialists",
     quotes: { open: "“", close: "”" },
     listSep: ", ",
@@ -58,6 +58,7 @@ export const en: Messages = {
   },
 
   nav: {
+    skipToContent: "Skip to content",
     main: "Main navigation",
     analytics: "Analytics",
     data: "Data",
@@ -71,6 +72,8 @@ export const en: Messages = {
     openMenu: "Open menu",
     navigation: "Navigation",
     language: "Interface language",
+    simulator: "Hours simulator",
+    reports: "Intelligence reports",
   },
 
   shell: {
@@ -737,6 +740,9 @@ export const en: Messages = {
   },
 
   skills: {
+    classComparisonNote: "These figures describe each class’s answers. Classes may have taken different questions; this is not a comparison on a shared test. Answer counts are not student counts.",
+    colIncorrect: "Incorrect answers",
+    colErrorRate: "Error rate",
     title: "Error and skill analysis",
     description: "Which specific skills cause difficulty: success rate by skill and question, typical errors, breakdown by class and textbook.",
     noSkillsTitle: "The data has no skills — showing question-level analysis",
@@ -848,6 +854,45 @@ export const en: Messages = {
     },
     exportCsv: "Download version (CSV)",
     exportFile: "hours-version-{subject}-{grade}.csv",
+  },
+
+  reports: {
+    unplannedTopics: "Topics with results outside the curriculum plan",
+    questionsNote: "Questions are sorted by success rate; all questions in the selected scope are shown.",
+    title: "Intelligence reports",
+    description: "Analysis results, recommendations and data limitations in one report.",
+    scopeNote: "The report uses subject and grade. Other filters are ignored to preserve the full course sample.",
+    generate: "Generate report",
+    exportPdf: "Print / Save PDF",
+    generatedAt: "Generated {date}",
+    sample: "Sample",
+    performance: "Learning performance",
+    problemTopics: "Problem topics",
+    textbooks: "Textbook comparison",
+    errorAnalysis: "Error analysis",
+    hours: "Teaching-hour recommendations",
+    limitations: "Data limitations",
+    noProblems: "No problem topics identified in this sample.",
+    noComparisons: "No courses with two or more textbooks to compare.",
+    noHours: "No curriculum plan in the selected scope.",
+    noSkills: "Skills are not provided; the platform does not infer skills or error categories from answers.",
+    noData: "No test results in the selected scope.",
+    synthetic: "Synthetic demonstration data",
+    excludedRows: "Excluded result rows",
+    duplicatesRemoved: "Removed duplicates",
+    insufficientTopics: "Topics with insufficient data",
+    noCurriculum: "Courses without a curriculum plan",
+    coursesWithoutPlan: "Courses without a plan when other courses have one",
+    partialSkills: "Answers without a skill",
+    singleClassTextbooks: "Textbooks used in a single class",
+    summary: "Summary",
+    baseline: "Current plan",
+    recommended: "Recommendation",
+    reserve: "Reserve",
+    budget: "Budget",
+    scopeAll: "All subjects and grades",
+    hoursNote: "Allocation uses default settings and the current plan budget. It is a recommendation for the methodologist, not a prediction of learning gains.",
+    comparisonNote: "Only shared questions within one subject and grade are compared. An association with results does not establish causation.",
   },
 
   notFound: {

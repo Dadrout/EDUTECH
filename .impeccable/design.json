@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-11T16:21:00.405566+00:00",
+  "title": "Design System: BilimLens",
+  "extensions": {
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "shadows": [],
+    "motion": []
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The main available action, with visible keyboard focus.",
+      "html": "<button class=\"primary-action\">Apply</button>",
+      "css": ".primary-action{background:var(--primary);color:var(--primary-foreground);border:0;border-radius:10px;min-height:36px;padding:8px 16px;font:500 14px 'Onest Variable',sans-serif}.primary-action:focus-visible{outline:3px solid var(--ring);outline-offset:2px}.primary-action:disabled{opacity:.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Observed data, clear decisions",
+    "overview": "Implemented shared design tokens and navigation for methodologists. Static code review only; browser and responsive visual approval remain pending.",
+    "keyCharacteristics": [
+      "Deep green navigation",
+      "Warm neutral analytical surfaces",
+      "Observed values with uncertainty"
+    ],
+    "rules": [],
+    "dos": [
+      "Preserve the existing logo",
+      "Separate students from observations"
+    ],
+    "donts": [
+      "Invent skill metadata",
+      "Predict attainment from changed hours",
+      "Claim unperformed visual QA"
+    ]
+  }
+}

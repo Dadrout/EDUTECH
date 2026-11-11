@@ -9,15 +9,15 @@ import { I18nProvider, LocaleScope } from "@/i18n/provider";
 
 export const metadata: Metadata = {
   title: {
-    default: "Data-Driven Curriculum",
-    template: "%s · Data-Driven Curriculum",
+    default: "BilimLens",
+    template: "%s · BilimLens",
   },
   description:
     "Аналитическая платформа для методистов: результаты тестирования по темам, сложные разделы, сравнение учебников и рекомендации по учебным часам.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f4f5f7",
+  themeColor: "#f5f7f6",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

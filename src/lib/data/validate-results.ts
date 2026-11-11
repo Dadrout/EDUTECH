@@ -180,6 +180,8 @@ export function validateResults(table: RawTable): ResultsValidation {
         questionId: get(row, "questionId"),
         isCorrect,
         testDate,
+        skill: get(row, "skill") || null,
+        errorType: isCorrect ? null : get(row, "errorType") || null,
       },
     });
   });

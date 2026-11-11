@@ -82,7 +82,7 @@ function exportPlan(rows: HoursRow[], subject: string, grade: number, reserve: n
   downloadCsv(i18n().t(i18n().m.hours.exportFile, { subject, grade }), csv);
 }
 
-function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
+function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: string; grade: number; scenarioOnly?: boolean }) {
   const { dataset, filters, config } = useReadyData();
   const { m, t, plural } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters, ["subject", "grade"]), [dataset.records, filters]);
@@ -200,6 +200,7 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
         </Alert>
       ) : (
         <>
+          {!scenarioOnly ? <>
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3 lg:grid-cols-5">
             {[
               { label: m.hours.kpiCurrent, value: formatHours(plan.currentTotal) },
@@ -226,20 +227,6 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
                 <p>{m.hours.okText}</p>
               </AlertDescription>
             </Alert>
-            {plan.warnings.length > 0 || unplanned.length > 0 ? (
-              <Alert variant="warning">
-                <AlertTriangle aria-hidden />
-                <AlertTitle>{m.hours.noticeTitle}</AlertTitle>
-                <AlertDescription>
-                  {plan.warnings.map((w) => (
-                    <p key={w}>{w}</p>
-                  ))}
-                  {unplanned.length > 0 ? (
-                    <p>{t(m.hours.unplanned, { topics: unplanned.map((u) => quote(u.topicName)).join(m.common.listSep) })}</p>
-                  ) : null}
-                </AlertDescription>
-              </Alert>
-            ) : null}
           </div>
 
           <Section
@@ -347,29 +334,44 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
             </div>
           </Section>
 
-          <HoursScenario rows={plan.rows} params={params} subject={subject} grade={grade} />
+          </> : null}
+            {plan.warnings.length > 0 || unplanned.length > 0 ? (
+              <Alert variant="warning">
+                <AlertTriangle aria-hidden />
+                <AlertTitle>{m.hours.noticeTitle}</AlertTitle>
+                <AlertDescription>
+                  {plan.warnings.map((w) => (
+                    <p key={w}>{w}</p>
+                  ))}
+                  {unplanned.length > 0 ? (
+                    <p>{t(m.hours.unplanned, { topics: unplanned.map((u) => quote(u.topicName)).join(m.common.listSep) })}</p>
+                  ) : null}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+          <HoursScenario key={JSON.stringify({ rows: plan.rows, params })} rows={plan.rows} params={params} subject={subject} grade={grade} />
         </>
       )}
     </div>
   );
 }
 
-function HoursContent() {
-  const { filters, config } = useReadyData();
+function HoursContent({ scenarioOnly = false }: { scenarioOnly?: boolean }) {
+  const { filters, config, dataset } = useReadyData();
   const { m } = useI18n();
   if (filters.subject === null || filters.grade === null) {
     return <CoursePicker reason={m.hours.pickerReason} />;
   }
-  return <HoursPlanner key={`${filters.subject}|${filters.grade}|${config.thresholds.high}`} subject={filters.subject} grade={filters.grade} />;
+  return <HoursPlanner key={JSON.stringify({ subject: filters.subject, grade: filters.grade, config, curriculum: dataset.curriculum })} subject={filters.subject} grade={filters.grade} scenarioOnly={scenarioOnly} />;
 }
 
-export function HoursView() {
+export function HoursView({ scenarioOnly = false }: { scenarioOnly?: boolean }) {
   const { m } = useI18n();
   return (
     <div className="grid grid-cols-1 gap-5">
       <PageHeader
-        title={m.hours.title}
-        description={m.hours.description}
+        title={scenarioOnly ? m.scenario.title : m.hours.title}
+        description={scenarioOnly ? m.scenario.description : m.hours.description}
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link href="/methodology#hours">
@@ -382,7 +384,7 @@ export function HoursView() {
       <DataGate>
         <SyntheticNotice />
         <FilterBar fields={["subject", "grade"]} />
-        <HoursContent />
+        <HoursContent scenarioOnly={scenarioOnly} />
       </DataGate>
     </div>
   );

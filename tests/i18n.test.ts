@@ -52,6 +52,15 @@ describe("словари", () => {
     expect(Object.keys(dictionaries).sort()).toEqual(LOCALES.map((l) => l.code).sort());
   });
 
+  it("название продукта и новые разделы доступны на всех языках", () => {
+    for (const dict of Object.values(dictionaries)) {
+      expect(dict.common.appName).toBe("BilimLens");
+      expect(dict.skills.title.trim()).not.toBe("");
+      expect(dict.scenario.title.trim()).not.toBe("");
+      expect(dict.reports.title.trim()).not.toBe("");
+    }
+  });
+
   for (const [code, dict] of Object.entries(dictionaries)) {
     if (code === "ru") continue;
     it(`${code}: совпадает с русским по ключам, параметрам и разметке`, () => {

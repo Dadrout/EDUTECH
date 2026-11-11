@@ -13,7 +13,7 @@ import { i18n } from "@/i18n/core";
 import { useI18n } from "@/i18n/provider";
 import { Rich } from "@/i18n/rich";
 import { filterRecords } from "@/lib/analytics/filters";
-import { analyzeSkills, computeSkillDetail, ERROR_TYPES, type ErrorTypeCount, type QuestionStats, type SkillStats } from "@/lib/analytics/skills";
+import { analyzeSkills, computeClassErrorStats, computeSkillDetail, ERROR_TYPES, type ErrorTypeCount, type QuestionStats, type SkillStats } from "@/lib/analytics/skills";
 import { classifyLevel } from "@/lib/analytics/stats";
 import type { AnalysisConfig } from "@/lib/config/analysis-config";
 import type { AnswerRecord } from "@/lib/domain/types";
@@ -90,10 +90,10 @@ function ErrorsBySkill({ skills, onSelect }: { skills: SkillStats[]; onSelect: (
   );
 }
 
-function QuestionTable({ questions, thresholds, showSkill, showTopic }: { questions: QuestionStats[]; thresholds: AnalysisConfig["thresholds"]; showSkill: boolean; showTopic: boolean }) {
+export function QuestionTable({ questions, thresholds, showSkill, showTopic, previewLimit = QUESTIONS_PREVIEW }: { questions: QuestionStats[]; thresholds: AnalysisConfig["thresholds"]; showSkill: boolean; showTopic: boolean; previewLimit?: number }) {
   const { m, t } = useI18n();
   const [all, setAll] = React.useState(false);
-  const shown = all ? questions : questions.slice(0, QUESTIONS_PREVIEW);
+  const shown = all ? questions : questions.slice(0, previewLimit);
   return (
     <>
       <div className="overflow-x-auto">
@@ -145,7 +145,7 @@ function QuestionTable({ questions, thresholds, showSkill, showTopic }: { questi
           </tbody>
         </table>
       </div>
-      {questions.length > QUESTIONS_PREVIEW ? (
+      {questions.length > previewLimit ? (
         <button
           type="button"
           aria-expanded={all}
@@ -252,6 +252,7 @@ function SkillsContent() {
   const { m, t, plural } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters), [dataset.records, filters]);
   const analysis = React.useMemo(() => analyzeSkills(records, config), [records, config]);
+  const classStats = React.useMemo(() => computeClassErrorStats(records, config), [records, config]);
   const [selected, setSelected] = React.useState<string | null>(null);
 
   const { coverage, skills, errorTypes, questions } = analysis;
@@ -339,6 +340,15 @@ function SkillsContent() {
           </div>
         </Section>
       ) : null}
+
+      <Section title={m.topicDetail.byClass} description={m.skills.classComparisonNote}>
+        <div className="overflow-x-auto">
+          <table className="report-table w-full min-w-[580px] text-sm">
+            <thead><tr><th>{m.filters.classId}</th><th>{m.topics.colStudents}</th><th>{m.topics.colAnswers}</th><th>{m.skills.colIncorrect}</th><th>{m.skills.colErrorRate}</th><th>{m.skills.colRate}</th><th>{m.units.ci}</th></tr></thead>
+            <tbody>{classStats.map(row => <tr key={row.id}><td className="font-medium">{row.label}</td><td>{formatInt(row.students)}</td><td>{formatInt(row.answers)}</td><td>{formatInt(row.incorrect)}</td><td>{formatPct(row.answers > 0 ? row.incorrect / row.answers : null)}</td><td><div className="flex items-center gap-3"><span>{formatPct(row.estimate?.rate)}</span><RateBar rate={row.estimate?.rate ?? null} color={LEVEL_META[row.sufficient ? classifyLevel(row.estimate?.rate ?? null, config.thresholds) : "insufficient"].color} thresholds={config.thresholds} className="w-20" /></div>{!row.sufficient ? <p className="text-xs text-muted-foreground">{m.topics.insufficientData}</p> : null}</td><td className="text-xs text-muted-foreground">{formatCi(row.estimate?.ciLow, row.estimate?.ciHigh)}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </Section>
 
       <Section
         title={m.skills.questionsTitle}
