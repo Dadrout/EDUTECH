@@ -107,6 +107,10 @@ export function FilterBar({
       {fields.includes("grade") ? (
         <FilterSelect field="grade" value={filters.grade} options={options.grades} onChange={(v) => set("grade", v)} allowAll />
       ) : null}
+      {fields.some(f => !["subject", "grade"].includes(f)) ? (
+        <details className="col-span-2 min-w-0 sm:relative" open={fields.some(f => !["subject", "grade"].includes(f) && filters[f] !== null) || undefined}>
+          <summary className="cursor-pointer rounded-md border bg-card px-3 py-2 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring">{m.ux.details} · {fields.filter(f => !["subject", "grade"].includes(f) && filters[f] !== null).length}</summary>
+          <div className="mt-3 grid gap-3 border-l pl-3 sm:flex sm:flex-wrap">
       {fields.includes("classId") ? (
         <FilterSelect field="classId" value={filters.classId} options={options.classes} onChange={(v) => set("classId", v)} allowAll />
       ) : null}
@@ -115,6 +119,9 @@ export function FilterBar({
       ) : null}
       {fields.includes("topicKey") ? (
         <FilterSelect field="topicKey" value={filters.topicKey} options={options.topics} onChange={(v) => set("topicKey", v)} allowAll />
+      ) : null}
+          </div>
+        </details>
       ) : null}
       {extra}
       {active ? (

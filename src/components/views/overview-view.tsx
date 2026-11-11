@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertOctagon, AlertTriangle, ArrowRight, FlaskConical, Info, type LucideIcon } from "lucide-react";
+import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, KpiTile, MethodNote, PageHeader, Section } from "@/components/common/blocks";
 import { FilterBar } from "@/components/common/filter-bar";
@@ -23,9 +24,9 @@ import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 
-const MAX_CHART_TOPICS = 15;
+const MAX_CHART_TOPICS = 6;
 /** Сколько проблем показывать до раскрытия списка: самые важные идут первыми. */
-const INSIGHTS_PREVIEW = 5;
+const INSIGHTS_PREVIEW = 3;
 
 const SEVERITY: Record<InsightSeverity, { Icon: LucideIcon; className: string; readonly label: string }> = {
   critical: { Icon: AlertOctagon, className: "text-level-low", get label() { return i18n().m.overview.severity.critical; } },
@@ -120,7 +121,7 @@ function OverviewContent() {
   const records = React.useMemo(() => filterRecords(dataset.records, filters), [dataset.records, filters]);
   const topicStats = React.useMemo(() => computeTopicStats(records, config), [records, config]);
   const overview = React.useMemo(() => computeOverview(records, topicStats, config), [records, topicStats, config]);
-  const insights = React.useMemo(() => computeInsights(records, topicStats, config), [records, topicStats, config]);
+  const insights = React.useMemo(() => computeInsights(records, topicStats, config).filter(insight => topicStats.some(topic => topic.sufficient) || insight.id !== "no-problems"), [records, topicStats, config]);
 
   const multiCourse = filters.subject === null || filters.grade === null;
   const chartTopics = React.useMemo(
@@ -148,9 +149,9 @@ function OverviewContent() {
     return c;
   }, [topicStats]);
 
-  const [allInsights, setAllInsights] = React.useState(false);
-  const shownInsights = allInsights ? insights : insights.slice(0, INSIGHTS_PREVIEW);
-  const hiddenInsights = insights.length - INSIGHTS_PREVIEW;
+  const otherInsights = React.useMemo(() => insights.slice(1), [insights]);
+  const insightPage = usePagination(otherInsights, INSIGHTS_PREVIEW);
+  const shownInsights = insightPage.rows;
 
   const k = overview.kpis;
 
@@ -164,6 +165,9 @@ function OverviewContent() {
 
   return (
     <div className="grid grid-cols-1 gap-5">
+      <Finding title={topicStats.some(topic => topic.sufficient) ? insights[0]?.title ?? m.overview.noProblemsTitle : m.ux.noReliableFinding} tone={overview.kpis.problemTopics > 0 ? "warning" : "default"} actions={<Button asChild variant="outline"><Link href="/reports">{m.ux.createReport}</Link></Button>}>
+        <p>{topicStats.some(topic => topic.sufficient) ? insights[0]?.detail ?? m.overview.noProblemsDescription : m.ux.notEnoughData}</p>
+      </Finding>
       {/* Сначала выводы (результат, проблемные темы), затем объём данных, на котором они получены. */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
         <KpiTile label={m.overview.kpiAverage} value={formatPct(k.estimate?.rate)} sub={t(m.units.ciValue, { ci: formatCi(k.estimate?.ciLow, k.estimate?.ciHigh) })} />
@@ -212,6 +216,7 @@ function OverviewContent() {
               <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel={m.overview.chartTitle} />
             </div>
           </Section>
+          <Disclosure title={m.overview.statusTitle}>
           <Section
             title={m.overview.statusTitle}
             description={k.dateFrom ? t(m.overview.testingPeriod, { from: formatDate(k.dateFrom), to: formatDate(k.dateTo) }) : undefined}
@@ -220,11 +225,12 @@ function OverviewContent() {
               <StatusSummary counts={statusCounts} />
             </div>
           </Section>
+          </Disclosure>
         </div>
 
         <Section title={m.overview.insightsTitle} description={m.overview.insightsDescription}>
-          {insights.length === 0 ? (
-            <EmptyState icon={Info} title={m.overview.noProblemsTitle} description={m.overview.noProblemsDescription} />
+          {otherInsights.length === 0 ? (
+            <div className="p-5"><Button variant="outline" asChild><Link href="/topics">{m.ux.inspectTopics}</Link></Button></div>
           ) : (
             <>
               <ul className="divide-y">
@@ -232,21 +238,13 @@ function OverviewContent() {
                   <InsightItem key={i.id} insight={i} />
                 ))}
               </ul>
-              {hiddenInsights > 0 ? (
-                <button
-                  type="button"
-                  aria-expanded={allInsights}
-                  onClick={() => setAllInsights((v) => !v)}
-                  className="w-full rounded-b-xl border-t px-5 py-2.5 text-left text-[13px] font-medium text-primary outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:ring-inset"
-                >
-                  {allInsights ? m.overview.collapse : t(m.overview.showMore, { n: hiddenInsights })}
-                </button>
-              ) : null}
+              <Pagination {...insightPage} onPageChange={insightPage.setPage} />
             </>
           )}
         </Section>
       </div>
 
+      <Disclosure title={m.overview.distributionTitle}>
       <Section
         title={m.overview.distributionTitle}
         description={t(m.overview.distributionDescription, { n: config.minAnswersPerStudent })}
@@ -255,6 +253,7 @@ function OverviewContent() {
           <LevelDistribution subjects={overview.subjects} thresholds={config.thresholds} />
         </div>
       </Section>
+      </Disclosure>
     </div>
   );
 }

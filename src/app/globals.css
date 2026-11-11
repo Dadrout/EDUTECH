@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "BilimLens Editorial";
+  src: url("/fonts/editorial/NotoSerif-SemiBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
 /*
  * Дизайн-токены BilimLens.
  * Светлая тема (проектор, печать отчётов). Нейтральные цвета холодные, в тон
@@ -121,6 +129,7 @@
 
   --font-sans: "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  --font-editorial: "BilimLens Editorial", "Noto Serif", Georgia, serif;
 }
 
 @layer base {
@@ -202,5 +211,8 @@
 .report-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); background: var(--muted); }
 .report-table td { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
 .report-table tbody tr:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.detail-disclosure > summary::-webkit-details-marker { display: none; }
+.detail-disclosure[open] > summary { margin-bottom: 0.5rem; }
+.finding { padding-top: 0.25rem; }
 input, textarea { caret-color: var(--primary); }
 :root { scrollbar-color: #b3c5b9 var(--background); scrollbar-width: thin; }

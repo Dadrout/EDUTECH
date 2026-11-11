@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
+import { BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, PanelLeftClose, PanelLeftOpen, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { SettingsDialog } from "@/components/common/settings-dialog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import type { Messages } from "@/i18n/messages/ru";
 import { formatInt } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useData } from "@/providers/data-provider";
+import { getSidebarServerSnapshot, getSidebarSnapshot, setSidebarCollapsed, subscribeSidebar } from "./sidebar-preference";
 
 interface NavItem {
   href: string;
@@ -109,13 +110,17 @@ function DatasetStatusCard({ dataset }: { dataset: NonNullable<ReturnType<typeof
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { m } = useI18n();
   return (
-    <div className="workspace-sidebar flex h-full flex-col gap-8 overflow-y-auto px-4 pt-6 pb-4">
+    <div className="workspace-sidebar flex h-full flex-col gap-6 overflow-y-auto px-4 pt-6 pb-4">
       <Logo />
-      <nav aria-label={m.nav.main} className="grid gap-5">
-        <div>
-          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{m.nav.analytics}</div>
-          <NavLinks items={ANALYTICS_NAV} onNavigate={onNavigate} />
-        </div>
+      <nav aria-label={m.nav.main} className="grid gap-4">
+        {[
+          { label: m.ux.whatHappened, paths: ["/", "/topics"] },
+          { label: m.ux.whyHappened, paths: ["/skills", "/textbooks"] },
+          { label: m.ux.whatToDo, paths: ["/hours", "/simulator", "/reports"] },
+        ].map(group => <div key={group.label}>
+          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{group.label}</div>
+          <NavLinks items={ANALYTICS_NAV.filter(item => group.paths.includes(item.href))} onNavigate={onNavigate} />
+        </div>)}
         <div>
           <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{m.nav.data}</div>
           <NavLinks items={DATA_NAV} onNavigate={onNavigate} />
@@ -142,14 +147,21 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const collapsed = React.useSyncExternalStore(subscribeSidebar, getSidebarSnapshot, getSidebarServerSnapshot);
   const { m } = useI18n();
   return (
-    <div className="app-workspace min-h-dvh lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+    <div className={cn("app-workspace min-h-dvh lg:grid", collapsed ? "lg:grid-cols-[0px_minmax(0,1fr)]" : "lg:grid-cols-[232px_minmax(0,1fr)]")}>
       <a href="#main-content" className="sr-only z-50 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2">{m.nav.skipToContent}</a>
-      <aside className="sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar lg:block">
+      <aside id="desktop-sidebar" aria-hidden={collapsed || undefined} className={cn("sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar lg:col-start-1", collapsed ? "lg:hidden" : "lg:block")}>
         <SidebarContent />
       </aside>
-      <div className="min-w-0">
+      <div className="min-w-0 lg:col-start-2">
+        <div className="sticky top-0 z-30 hidden h-11 items-center border-b bg-background px-4 lg:flex lg:px-8" data-print-hide>
+          <Button variant="ghost" size="sm" onClick={() => setSidebarCollapsed(!collapsed)} aria-expanded={!collapsed} aria-controls="desktop-sidebar">
+            {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
+            {collapsed ? m.ux.showSidebar : m.ux.hideSidebar}
+          </Button>
+        </div>
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
           <Logo compact />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -164,7 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
         </header>
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1480px] px-4 py-6 outline-none sm:px-6 lg:px-9 lg:py-9">{children}</main>
+        <main id="main-content" tabIndex={-1} className={cn("mx-auto w-full px-4 py-6 outline-none sm:px-6 lg:px-9 lg:py-9", collapsed ? "max-w-none" : "max-w-[1480px]")}>{children}</main>
       </div>
     </div>
   );

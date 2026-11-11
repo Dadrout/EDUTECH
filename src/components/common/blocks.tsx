@@ -23,7 +23,7 @@ export function PageHeader({
   return (
     <div className="page-heading flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-[25px] leading-tight font-semibold tracking-[-0.025em] text-balance sm:text-[30px]">{title}</h1>
+        <h1 className="font-editorial text-[27px] leading-tight font-semibold tracking-[-0.025em] text-balance sm:text-[34px]">{title}</h1>
         {description ? <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-11T16:21:00.405566+00:00",
+  "generatedAt": "2026-11-11T17:36:30.552546+00:00",
   "title": "Design System: BilimLens",
   "extensions": {
     "breakpoints": [
@@ -14,7 +14,13 @@
       }
     ],
     "shadows": [],
-    "motion": []
+    "motion": [],
+    "typographyMeta": {
+      "headline": {
+        "displayName": "BilimLens Editorial / Noto Serif SemiBold",
+        "purpose": "Cyrillic-capable page headings and leading findings; Onest remains the UI/body font."
+      }
+    }
   },
   "components": [
     {
@@ -28,11 +34,14 @@
   ],
   "narrative": {
     "northStar": "Observed data, clear decisions",
-    "overview": "Implemented shared design tokens and navigation for methodologists. Static code review only; browser and responsive visual approval remain pending.",
+    "overview": "Findings first, evidence on demand, decisions next. Stable pagination preserves full data access. The standalone text/vector PDF has been rendered and reviewed; browser responsive approval remains pending because server/Chromium startup is blocked.",
     "keyCharacteristics": [
-      "Deep green navigation",
-      "Warm neutral analytical surfaces",
-      "Observed values with uncertainty"
+      "Question-based navigation",
+      "Editorial Cyrillic headings",
+      "Progressive disclosure",
+      "Bounded evidence views",
+      "Five-page A4 landscape reports",
+      "Persisted collapsible desktop navigation"
     ],
     "rules": [],
     "dos": [

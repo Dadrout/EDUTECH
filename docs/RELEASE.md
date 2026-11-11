@@ -1,5 +1,7 @@
 # BilimLens — integration verification, 2026-11-11
 
+> This is the historical integration check. The subsequent UX/PDF rebuild is documented in [UX-REBUILD.md](UX-REBUILD.md); its PDF export no longer uses browser print.
+
 **Status: implementation integrated; browser release approval remains open.** Do not describe the product as fully verified or demo-ready yet.
 
 ## Recovered state and Git

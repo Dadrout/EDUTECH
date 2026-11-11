@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Pagination, usePagination } from "@/components/common/exploration";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ScanSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { useI18n } from "@/i18n/provider";
 
 export function BreakdownTable({ title, rows, config, minNote }: { title: string; rows: BreakdownRow[]; config: AnalysisConfig; minNote: string }) {
   const { m, t } = useI18n();
+  const p = usePagination(rows, 8);
   if (rows.length === 0) return null;
   return (
     <div>
@@ -32,7 +34,7 @@ export function BreakdownTable({ title, rows, config, minNote }: { title: string
             </tr>
           </thead>
           <tbody className="divide-y">
-            {rows.map((r) => {
+            {p.rows.map((r) => {
               const level = r.sufficient ? classifyLevel(r.estimate?.rate ?? null, config.thresholds) : "insufficient";
               return (
                 <tr key={r.id}>
@@ -52,6 +54,7 @@ export function BreakdownTable({ title, rows, config, minNote }: { title: string
           </tbody>
         </table>
       </div>
+      <Pagination {...p} onPageChange={p.setPage} />
       {rows.some((r) => !r.sufficient) ? <p className="mt-1.5 text-[11px] text-muted-foreground">{t(m.topicDetail.greyNote, { note: minNote })}</p> : null}
     </div>
   );
@@ -73,6 +76,8 @@ export function TopicDetailSheet({
   const router = useRouter();
   const { setFilters } = useReadyData();
   const detail = React.useMemo(() => (topic ? computeTopicDetail(records, topic.key, config) : null), [topic, records, config]);
+  const questions = React.useMemo(() => detail?.questions ?? [], [detail]);
+  const questionPage = usePagination(questions, 12);
 
   return (
     <Sheet open={topic !== null} onOpenChange={(open) => (!open ? onClose() : undefined)}>
@@ -147,7 +152,7 @@ export function TopicDetailSheet({
                       </tr>
                     </thead>
                     <tbody className="divide-y">
-                      {detail.questions.slice(0, 12).map((q) => (
+                      {questionPage.rows.map((q) => (
                         <tr key={`${q.testId}-${q.questionId}`}>
                           <td className="px-3 py-2 font-mono text-xs">
                             {q.testId} · {q.questionId}
@@ -160,7 +165,7 @@ export function TopicDetailSheet({
                     </tbody>
                   </table>
                 </div>
-                {detail.questions.length > 12 ? <p className="mt-1.5 text-[11px] text-muted-foreground">{t(m.topicDetail.shownOf, { shown: 12, total: detail.questions.length })}</p> : null}
+                <Pagination {...questionPage} onPageChange={questionPage.setPage} />
               </div>
             </div>
           </>

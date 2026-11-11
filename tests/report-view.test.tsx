@@ -46,7 +46,8 @@ describe("report rendering", () => {
     setCurrentI18n(createI18n("en", en));
     const html = renderToStaticMarkup(<ReportsView />);
     expect(html).toContain(en.reports.title);
-    expect(html).toContain(en.reports.exportPdf);
+    expect(html).toContain(en.ux.downloadReport);
+    expect(html).toContain(en.ux.downloadAppendix);
     expect(html).toContain("Sign rules");
     expect(html).not.toContain(ru.reports.title);
   });
@@ -78,5 +79,21 @@ describe("report rendering", () => {
     const simulator = renderToStaticMarkup(<HoursView scenarioOnly />);
     expect(simulator).toContain(ru.hours.unplanned.split("{topics}")[0]);
     expect(simulator).toContain("Missing-plan topic");
+  });
+
+  it("does not call a conflicting curriculum an absent curriculum", () => {
+    sample();
+    dataset.curriculum = [{ subject: "Алгебра", grade: 7, topicId: "T1", topicName: "Тема 1", currentHours: 1, minHours: 4 }];
+    const html = renderToStaticMarkup(<ReportsView />);
+    expect(html).toContain('role="alert"');
+    expect(html).toContain(ru.hours.conflictTitle);
+    expect(html).not.toContain(ru.reports.noHours);
+  });
+
+  it("leads with uncertainty when no topic has enough observations", () => {
+    sample();
+    const html = renderToStaticMarkup(<ReportsView />);
+    expect(html).toContain(ru.ux.noReliableFinding);
+    expect(html).not.toContain(ru.insights.noneTitle);
   });
 });

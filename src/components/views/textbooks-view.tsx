@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, CircleHelp, Info, Library, Scale, type Luc
 import { CoursePicker } from "@/components/common/course-picker";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, MethodNote, PageHeader, Section } from "@/components/common/blocks";
+import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
 import { FilterBar } from "@/components/common/filter-bar";
 import { seriesColor } from "@/components/common/levels";
 import { ForestPlot } from "@/components/charts/forest-plot";
@@ -77,6 +78,11 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
     [courseRecords, selectedIds, filters.topicKey, reference, config],
   );
 
+  const comparableTopics = React.useMemo(() => result.topics.filter(topic => topic.status === "comparable"), [result.topics]);
+  const topicPage = usePagination(result.topics, 12);
+  const groupPage = usePagination(result.groups, 8);
+  const chartPage = usePagination(comparableTopics, 7);
+
   if (allTextbooks.length < 2) {
     return (
       <div className="rounded-xl border bg-card">
@@ -92,7 +98,6 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
     );
   }
 
-  const comparableTopics = result.topics.filter((t) => t.status === "comparable");
   const refTb = tbById.get(reference);
   const maxAbsDiff = Math.max(0.1, ...result.verdicts.map((v) => (v.diff ? Math.max(Math.abs(v.diff.ciLow), Math.abs(v.diff.ciHigh)) : 0)));
   const diffBound = Math.min(1, Math.ceil(maxAbsDiff * 10) / 10);
@@ -145,15 +150,37 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
         </div>
       ) : (
         <>
-          <Section
+          <Finding title={result.verdicts[0] ? VERDICT_META[result.verdicts[0].level].label : m.textbooks.verdict.insufficient} tone={result.verdicts.some(v => v.level === "preliminary" || v.level === "insufficient") ? "warning" : "default"}>
+            <p>{result.verdicts[0]?.summary ?? m.textbooks.selectTwoDescription}</p>
+            <p className="mt-2 text-xs text-muted-foreground">{t(m.textbooks.verdictDescription, { topics: plural(m.textbooks.comparableTopics, result.comparableTopicCount), total: result.topics.length, questions: plural(m.textbooks.commonQuestions, result.commonQuestionCount) })}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{m.textbooks.method5}</p>
+          </Finding>
+          {comparableTopics.length > 0 ? (
+            <Section title={m.textbooks.topicsChartTitle} description={m.textbooks.topicsChartDescription}>
+              <div className="px-3 py-4 sm:px-5">
+                <TextbookTopicChart
+                  series={selectedIds.map((id) => ({ id, name: tbById.get(id)?.short ?? id, color: tbById.get(id)?.color ?? seriesColor(0) }))}
+                  data={chartPage.rows.map((t) => ({
+                    key: t.topicKey,
+                    topicName: t.topicName,
+                    commonQuestions: t.commonQuestions,
+                    values: Object.fromEntries(selectedIds.map((id) => [id, { rate: t.cells[id]?.estimate?.rate ?? null, students: t.cells[id]?.students ?? 0, ciLow: t.cells[id]?.estimate?.ciLow ?? null, ciHigh: t.cells[id]?.estimate?.ciHigh ?? null }])),
+                  }))}
+                />
+              </div>
+              <Pagination page={chartPage.page} pageCount={chartPage.pageCount} total={chartPage.total} start={chartPage.start} end={chartPage.end} onPageChange={chartPage.setPage} />
+            </Section>
+          ) : null}
+
+          <Disclosure
             title={m.textbooks.verdictTitle}
             description={t(m.textbooks.verdictDescription, {
               topics: plural(m.textbooks.comparableTopics, result.comparableTopicCount),
               total: result.topics.length,
               questions: plural(m.textbooks.commonQuestions, result.commonQuestionCount),
             })}
-            actions={
-              <MethodNote title={m.textbooks.methodTitle}>
+          >
+            <div className="flex justify-end border-b p-3">              <MethodNote title={m.textbooks.methodTitle}>
                 <p>
                   <Rich text={m.textbooks.method1} />
                 </p>
@@ -168,8 +195,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                 </p>
                 <p>{m.textbooks.method5}</p>
               </MethodNote>
-            }
-          >
+</div>
             <div className="grid gap-px bg-border">
               {result.verdicts.map((v) => {
                 const meta = VERDICT_META[v.level];
@@ -214,8 +240,9 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                 </Alert>
               </div>
             ) : null}
-          </Section>
+          </Disclosure>
 
+          <Disclosure title={m.textbooks.diffTitle} description={m.textbooks.diffDescription}>
           <div className="grid grid-cols-1 items-start gap-5 2xl:grid-cols-2">
             <Section title={m.textbooks.rateTitle} description={m.textbooks.rateDescription}>
               <div className="px-5 py-4">
@@ -224,7 +251,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                   domain={[0, 1]}
                   ticks={[0, 0.2, 0.4, 0.6, 0.8, 1]}
                   tickFormat={(v) => formatPercentValue(Math.round(v * 100))}
-                  rows={result.groups.map((g) => ({
+                  rows={groupPage.rows.map((g) => ({
                     id: g.textbookId,
                     label: tbById.get(g.textbookId)?.short ?? g.textbookName,
                     sublabel: t(m.textbooks.groupSub, { students: formatInt(g.comparableStudents), classes: g.classes.join(m.common.listSep) }),
@@ -262,8 +289,9 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
               </div>
             </Section>
           </div>
+          </Disclosure>
 
-          <Section title={m.textbooks.groupsTitle} description={m.textbooks.groupsDescription}>
+          <Disclosure title={m.textbooks.groupsTitle} description={m.textbooks.groupsDescription} count={result.groups.length}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
@@ -304,25 +332,12 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                 </tbody>
               </table>
             </div>
-          </Section>
+            <Pagination page={groupPage.page} pageCount={groupPage.pageCount} total={groupPage.total} start={groupPage.start} end={groupPage.end} onPageChange={groupPage.setPage} />
+          </Disclosure>
 
-          {comparableTopics.length > 0 ? (
-            <Section title={m.textbooks.topicsChartTitle} description={m.textbooks.topicsChartDescription}>
-              <div className="px-3 py-4 sm:px-5">
-                <TextbookTopicChart
-                  series={selectedIds.map((id) => ({ id, name: tbById.get(id)?.short ?? id, color: tbById.get(id)?.color ?? seriesColor(0) }))}
-                  data={comparableTopics.map((t) => ({
-                    key: t.topicKey,
-                    topicName: t.topicName,
-                    commonQuestions: t.commonQuestions,
-                    values: Object.fromEntries(selectedIds.map((id) => [id, { rate: t.cells[id]?.estimate?.rate ?? null, students: t.cells[id]?.students ?? 0 }])),
-                  }))}
-                />
-              </div>
-            </Section>
-          ) : null}
 
-          <Section title={m.textbooks.tableTitle} description={m.textbooks.tableDescription}>
+
+          <Disclosure title={m.textbooks.tableTitle} description={m.textbooks.tableDescription}>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[900px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
@@ -348,7 +363,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {result.topics.map((row) => {
+                  {topicPage.rows.map((row) => {
                     const st = TOPIC_STATUS[row.status];
                     const comparable = row.status === "comparable";
                     return (
@@ -409,7 +424,8 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
                 </tbody>
               </table>
             </div>
-          </Section>
+            <Pagination page={topicPage.page} pageCount={topicPage.pageCount} total={topicPage.total} start={topicPage.start} end={topicPage.end} onPageChange={topicPage.setPage} />
+          </Disclosure>
         </>
       )}
     </div>

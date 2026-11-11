@@ -1,12 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Legend } from "@/components/common/blocks";
 import { formatInt, formatPct, formatPercentValue } from "@/lib/format";
-import { i18n } from "@/i18n/core";
-import { AXIS_TICK, ChartTooltipCard, TooltipRow } from "./chart-tooltip";
-import { useNarrow } from "./use-narrow";
+import { useI18n } from "@/i18n/provider";
 
 export interface TextbookSeries {
   id: string;
@@ -18,81 +15,39 @@ export interface TextbookTopicDatum {
   key: string;
   topicName: string;
   commonQuestions: number;
-  values: Record<string, { rate: number | null; students: number }>;
+  values: Record<string, { rate: number | null; students: number; ciLow?: number | null; ciHigh?: number | null }>;
 }
 
-function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
-}
-
-/** Сгруппированные полосы: успешность на общих заданиях по каждой сопоставимой теме. */
+/** Connected estimates on one 0–100% scale; intervals preserve sample uncertainty. */
 export function TextbookTopicChart({ data, series }: { data: TextbookTopicDatum[]; series: TextbookSeries[] }) {
-  const narrow = useNarrow();
-  const labelWidth = narrow ? 120 : 250;
-  const rows = data.map((d) => ({
-    key: d.key,
-    topicName: d.topicName,
-    commonQuestions: d.commonQuestions,
-    raw: d.values,
-    ...Object.fromEntries(series.map((s) => [s.id, d.values[s.id]?.rate != null ? (d.values[s.id].rate as number) * 100 : null])),
-  }));
-  const groupHeight = Math.max(30, series.length * 12 + 14);
-  const height = Math.max(140, rows.length * groupHeight + 40);
-
+  const { m, t } = useI18n();
+  const x = (rate: number) => 12 + Math.max(0, Math.min(1, rate)) * 376;
   return (
-    <div className="grid gap-3">
-      <div style={{ height }} role="img" aria-label={i18n().m.charts.textbookTopicsAria}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }} barCategoryGap={10} barGap={2}>
-            <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
-            <XAxis
-              type="number"
-              domain={[0, 100]}
-              ticks={[0, 20, 40, 60, 80, 100]}
-              tickFormatter={(v: number) => formatPercentValue(v)}
-              tick={AXIS_TICK}
-              axisLine={{ stroke: "var(--chart-axis)" }}
-              tickLine={false}
-            />
-            <YAxis
-              type="category"
-              dataKey="key"
-              width={labelWidth}
-              interval={0}
-              axisLine={false}
-              tickLine={false}
-              tick={(props: { x: number | string; y: number | string; payload: { value: string } }) => {
-                const row = rows.find((r) => r.key === props.payload.value);
-                return (
-                  <text x={Number(props.x) - 8} y={Number(props.y)} dy={4} textAnchor="end" fontSize={12} fill="var(--foreground)">
-                    <title>{row?.topicName}</title>
-                    {truncate(row?.topicName ?? "", Math.floor((labelWidth - 12) / 6.8))}
-                  </text>
-                );
-              }}
-            />
-            <Tooltip
-              cursor={{ fill: "var(--accent)", opacity: 0.6 }}
-              content={({ active, payload }) => {
-                const row = active && payload?.[0] ? (payload[0].payload as (typeof rows)[number]) : null;
-                if (!row) return null;
-                return (
-                  <ChartTooltipCard title={row.topicName}>
-                    {series.map((s) => (
-                      <TooltipRow key={s.id} color={s.color} label={s.name} value={i18n().t(i18n().m.charts.textbookTopicValue, { rate: formatPct(row.raw[s.id]?.rate ?? null), students: formatInt(row.raw[s.id]?.students ?? 0) })} />
-                    ))}
-                    <div className="pt-1 text-[11px]">{i18n().t(i18n().m.charts.commonQuestions, { n: row.commonQuestions })}</div>
-                  </ChartTooltipCard>
-                );
-              }}
-            />
-            {series.map((s) => (
-              <Bar key={s.id} dataKey={s.id} name={s.name} fill={s.color} barSize={10} radius={[0, 4, 4, 0]} isAnimationActive={false} />
-            ))}
-          </BarChart>
-        </ResponsiveContainer>
+    <div className="grid gap-4">
+      <Legend items={series.map(s => ({ label: s.name, color: s.color }))} />
+      <div className="grid grid-cols-[minmax(7rem,1fr)_minmax(10rem,2fr)] gap-x-4">
+        <span />
+        <div className="flex justify-between px-1 text-[11px] text-muted-foreground" aria-hidden>{[0, 20, 40, 60, 80, 100].map(value => <span key={value}>{formatPercentValue(value)}</span>)}</div>
+        {data.map(row => {
+          const points = series.flatMap(s => row.values[s.id]?.rate != null ? [{ series: s, value: row.values[s.id] }] : []);
+          const rates = points.map(p => p.value.rate as number);
+          const description = points.map(p => `${p.series.name}: ${formatPct(p.value.rate)}; ${t(m.units.studentsShort, { n: p.value.students })}${p.value.ciLow != null && p.value.ciHigh != null ? `; ${m.units.ci} ${formatPct(p.value.ciLow)}–${formatPct(p.value.ciHigh)}` : ""}`).join(". ");
+          return <React.Fragment key={row.key}>
+            <div className="min-w-0 border-b py-3"><p className="text-[13px] font-medium leading-snug">{row.topicName}</p><p className="mt-1 text-[11px] text-muted-foreground">{t(m.charts.commonQuestions, { n: row.commonQuestions })}</p></div>
+            <div className="flex min-w-0 items-center border-b py-2">
+              <svg viewBox="0 0 400 46" className="h-12 w-full" role="img" aria-label={`${row.topicName}. ${description || m.common.noDataForFilters}`}>
+                <title>{description}</title>
+                {[0, .2, .4, .6, .8, 1].map(tick => <line key={tick} x1={x(tick)} x2={x(tick)} y1={4} y2={42} stroke="var(--chart-grid)" />)}
+                {rates.length > 1 ? <line x1={x(Math.min(...rates))} x2={x(Math.max(...rates))} y1={23} y2={23} stroke="var(--chart-axis)" strokeWidth={3} /> : null}
+                {points.map(({ series: s, value }) => <g key={s.id}>
+                  {value.ciLow != null && value.ciHigh != null ? <line x1={x(value.ciLow)} x2={x(value.ciHigh)} y1={23} y2={23} stroke={s.color} strokeWidth={2} opacity={.6} /> : null}
+                  <circle cx={x(value.rate as number)} cy={23} r={5} fill={s.color} stroke="var(--card)" strokeWidth={1.5}><title>{s.name}: {formatPct(value.rate)} · {formatInt(value.students)}</title></circle>
+                </g>)}
+              </svg>
+            </div>
+          </React.Fragment>;
+        })}
       </div>
-      <Legend items={series.map((s) => ({ label: s.name, color: s.color }))} />
     </div>
   );
 }

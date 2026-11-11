@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { ChevronDown } from "lucide-react";
 import { PageHeader } from "@/components/common/blocks";
 import { SettingsDialog } from "@/components/common/settings-dialog";
 import { useI18n } from "@/i18n/provider";
@@ -11,10 +12,10 @@ import { useData } from "@/providers/data-provider";
 
 function Block({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-20 rounded-xl border bg-card px-5 py-5 sm:px-6">
-      <h2 className="mb-3 text-base font-semibold">{title}</h2>
-      <div className="grid max-w-3xl gap-3 text-sm leading-relaxed text-muted-foreground [&_b]:font-medium [&_b]:text-foreground [&_li]:pl-1 [&_ol]:grid [&_ol]:list-decimal [&_ol]:gap-1.5 [&_ol]:pl-5 [&_ul]:grid [&_ul]:list-disc [&_ul]:gap-1.5 [&_ul]:pl-5">{children}</div>
-    </section>
+    <details id={id} className="detail-disclosure group scroll-mt-20 border-t" open={id === "data" || undefined}>
+      <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 rounded-md py-3 text-base font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring">{title}<ChevronDown className="size-4 shrink-0 group-open:rotate-180" aria-hidden /></summary>
+      <div className="grid max-w-3xl gap-3 pb-5 text-sm leading-relaxed text-muted-foreground [&_b]:font-medium [&_b]:text-foreground [&_li]:pl-1 [&_ol]:grid [&_ol]:list-decimal [&_ol]:gap-1.5 [&_ol]:pl-5 [&_ul]:grid [&_ul]:list-disc [&_ul]:gap-1.5 [&_ul]:pl-5">{children}</div>
+    </details>
   );
 }
 
@@ -27,6 +28,15 @@ const TOC = ["data", "rate", "levels", "textbooks", "hours", "limits"] as const;
 export function MethodologyView() {
   const { config } = useData();
   const { m, t } = useI18n();
+  React.useEffect(() => {
+    const openHash = () => {
+      const target = document.getElementById(window.location.hash.slice(1));
+      if (target instanceof HTMLDetailsElement) { target.open = true; target.scrollIntoView({ block: "start" }); }
+    };
+    openHash();
+    window.addEventListener("hashchange", openHash);
+    return () => window.removeEventListener("hashchange", openHash);
+  }, []);
   const mm = m.methodology;
   const h = defaultHoursConfig(config);
   const pct = (v: number) => formatPercentValue(v);
