@@ -1,53 +1,54 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@font-face {
-  font-family: "BilimLens Editorial";
-  src: url("/fonts/editorial/NotoSerif-SemiBold.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-}
-
 /*
- * Дизайн-токены BilimLens.
- * Светлая тема (проектор, печать отчётов). Нейтральные цвета холодные, в тон
- * основному синему. Цвет несёт смысл: уровни освоения, учебники, тепловая карта;
- * интерфейс вокруг данных остаётся нейтральным. Цвета графиков взяты из
- * проверенной на дальтонизм палитры; уровни освоения всегда сопровождаются
- * иконкой и подписью.
+ * BilimLens design tokens.
+ * Light canvas with white rounded cards; the single brand accent is the logo
+ * green. Chrome stays neutral; colour elsewhere carries meaning (mastery
+ * levels, textbook identity, heatmap). Chart colours come from a
+ * colour-blind-safe palette; mastery levels always pair colour with an icon
+ * and a label.
  */
 :root {
   color-scheme: light;
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 
-  --background: #f5f7f6;
-  --foreground: #192d2a;
+  --background: #f3f5f4;
+  --foreground: #121a16;
   --card: #ffffff;
-  --card-foreground: #192d2a;
+  --card-foreground: #121a16;
   --popover: #ffffff;
-  --popover-foreground: #192d2a;
-  --primary: #176254;
+  --popover-foreground: #121a16;
+  --primary: #17763b;
   --primary-foreground: #ffffff;
-  --secondary: #edf2ef;
-  --secondary-foreground: #233e36;
-  --muted: #f0f4f2;
-  --muted-foreground: #596b65;
-  --accent: #e3f0e9;
-  --accent-foreground: #174f40;
+  --secondary: #eef2f0;
+  --secondary-foreground: #1d2a24;
+  --muted: #f1f4f2;
+  --muted-foreground: #5c6862;
+  --accent: #e5f3e9;
+  --accent-foreground: #0e5a2b;
   --destructive: #c42f2f;
-  --border: #dce5df;
-  --input: #bdcec4;
-  --ring: #277c67;
+  --border: #e3e8e5;
+  --input: #cdd7d1;
+  --ring: #1f8a43;
 
-  --sidebar: #153d35;
-  --sidebar-border: #31564b;
-  --sidebar-foreground: #e6f1ea;
-  --sidebar-muted: #b3c9bd;
-  --sidebar-active: #d8ebde;
-  --sidebar-hover: #214e41;
+  --sidebar: #ffffff;
+  --sidebar-border: #e3e8e5;
+  --sidebar-foreground: #121a16;
+  --sidebar-muted: #5c6862;
+  --sidebar-active: #e5f3e9;
+  --sidebar-active-fg: #0e5a2b;
+  --sidebar-hover: #f3f5f4;
 
-  /* Уровни освоения (статус): метка + иконка + цвет */
+  /* Hero card: the one surface filled with the brand colour */
+  --hero-from: #0d5329;
+  --hero-to: #166c36;
+  --hero-foreground: #ffffff;
+  --hero-muted: #dcefe2;
+
+  --card-shadow: 0 1px 2px rgb(18 26 22 / 0.04), 0 4px 16px -8px rgb(18 26 22 / 0.08);
+
+  /* Mastery levels (status): label + icon + colour */
   --level-high: #2c8442;
   --level-high-bg: #e6f3e9;
   --level-high-fg: #1d5e2e;
@@ -61,7 +62,7 @@
   --level-none-bg: #eceef1;
   --level-none-fg: #4f5562;
 
-  /* Категориальная палитра: цвет закреплён за учебником, а не за позицией */
+  /* Categorical palette: a colour belongs to a textbook, not to a position */
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
@@ -71,14 +72,14 @@
   --series-7: #6250d6;
   --series-8: #e34948;
 
-  /* Оформление графиков */
-  --chart-grid: #e8eaee;
-  --chart-axis: #c1c6cf;
-  --chart-ink: #4f5562;
-  --chart-muted: #6f7684;
-  --chart-neutral: #c4c9d1;
+  /* Chart chrome */
+  --chart-grid: #e8ebe9;
+  --chart-axis: #c3cac6;
+  --chart-ink: #4d5852;
+  --chart-muted: #6b7570;
+  --chart-neutral: #c6cdc9;
 
-  /* Расходящаяся шкала тепловой карты: красный ← серый → синий */
+  /* Diverging heatmap scale: red <- grey -> blue */
   --div-neg: #c22e2a;
   --div-mid: #eceef1;
   --div-pos: #1a56a0;
@@ -107,6 +108,7 @@
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar);
   --color-sidebar-border: var(--sidebar-border);
+  --shadow-card: var(--card-shadow);
 
   --color-level-high: var(--level-high);
   --color-level-high-bg: var(--level-high-bg);
@@ -127,9 +129,9 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  --font-sans: "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Geologica Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
-  --font-editorial: "BilimLens Editorial", "Noto Serif", Georgia, serif;
+  --font-display: "Geologica Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
@@ -142,7 +144,6 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
-    font-feature-settings: "cv11";
   }
   ::selection {
     background: color-mix(in oklab, var(--primary) 18%, transparent);
@@ -182,7 +183,7 @@
     display: none !important;
   }
   @page { size: A4; margin: 14mm 12mm; }
-  html, body { background: white !important; color: #182822 !important; }
+  html, body { background: white !important; color: #121a16 !important; }
   .app-workspace { display: block !important; }
   #main-content { max-width: none; padding: 0; }
   .report-document { gap: 5mm; font-size: 10pt; }
@@ -201,13 +202,35 @@
 .workspace-sidebar { color: var(--sidebar-foreground); background: var(--sidebar); }
 .workspace-sidebar .text-muted-foreground { color: var(--sidebar-muted); }
 .workspace-sidebar .border-t { border-color: var(--sidebar-border); }
-.workspace-sidebar .sidebar-link { color: var(--sidebar-muted); }
+.workspace-sidebar .sidebar-link { position: relative; color: var(--sidebar-muted); }
 .workspace-sidebar .sidebar-link:hover,
 .workspace-sidebar a:hover { background: var(--sidebar-hover); color: var(--sidebar-foreground); }
 .workspace-sidebar .sidebar-link-active,
-.workspace-sidebar .sidebar-link-active:hover { background: var(--sidebar-active); color: #153d35; }
-.workspace-sidebar a.brand-lockup:hover { background: #ffffff; }
+.workspace-sidebar .sidebar-link-active:hover { background: var(--sidebar-active); color: var(--sidebar-active-fg); font-weight: 600; }
+.workspace-sidebar .sidebar-link-active::before {
+  content: ""; position: absolute; left: -1rem; top: 0.5rem; bottom: 0.5rem;
+  width: 4px; border-radius: 0 4px 4px 0; background: var(--primary);
+}
+.workspace-sidebar a.brand-lockup:hover { background: transparent; }
 .workspace-sidebar [role="combobox"] { background: var(--sidebar); color: var(--sidebar-foreground); border-color: var(--sidebar-border); }
+
+/*
+ * KPI strip: tiles become separate rounded cards and the first tile is the
+ * brand-filled hero, as in the overview layout. Scoped by the tile's data-slot
+ * so views keep their own grid templates.
+ */
+:where(div):has(> [data-slot="kpi"]) { gap: 1rem; overflow: visible; border: 0; background: transparent; border-radius: 0; }
+[data-slot="kpi"],
+:where(div):has(> [data-slot="kpi"]) > :not([data-slot="kpi"]) { border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); box-shadow: var(--card-shadow); background: var(--card); }
+[data-slot="kpi"]:first-child {
+  border-color: transparent;
+  color: var(--hero-foreground);
+  background: radial-gradient(120% 140% at 100% 0%, var(--hero-to) 0%, var(--hero-from) 70%);
+}
+[data-slot="kpi"]:first-child [data-kpi-part="label"],
+[data-slot="kpi"]:first-child [data-kpi-part="sub"] { color: var(--hero-muted); }
+[data-slot="kpi"]:first-child [data-kpi-part="value"] { color: var(--hero-foreground); }
+
 .report-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); background: var(--muted); }
 .report-table td { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
 .report-table tbody tr:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
@@ -215,4 +238,4 @@
 .detail-disclosure[open] > summary { margin-bottom: 0.5rem; }
 .finding { padding-top: 0.25rem; }
 input, textarea { caret-color: var(--primary); }
-:root { scrollbar-color: #b3c5b9 var(--background); scrollbar-width: thin; }
+:root { scrollbar-color: #c3cdc7 var(--background); scrollbar-width: thin; }

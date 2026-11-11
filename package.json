@@ -17,22 +17,22 @@
     "verify:pdf": "python3 scripts/verify-report-pdf.py"
   },
   "dependencies": {
-    "@fontsource-variable/onest": "^5.3.1",
+    "@fontsource-variable/geologica": "^5.3.0",
+    "@pdf-lib/fontkit": "1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.71.0",
     "next": "16.4.6",
     "papaparse": "^5.7.0",
+    "pdf-lib": "1.17.1",
     "radix-ui": "^1.8.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "read-excel-file": "^9.3.14",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.7.0",
-    "pdf-lib": "1.17.1",
-    "@pdf-lib/fontkit": "1.1.1"
+    "tailwind-merge": "^3.7.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

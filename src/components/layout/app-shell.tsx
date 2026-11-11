@@ -40,7 +40,7 @@ const DATA_NAV: NavItem[] = [
 function Logo({ compact = false }: { compact?: boolean }) {
   const { m } = useI18n();
   return (
-    <Link href="/" className={cn("brand-lockup flex w-fit max-w-full flex-col items-start rounded-md bg-white outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50", compact ? "p-1.5" : "gap-1.5 p-2.5")}>
+    <Link href="/" className={cn("brand-lockup flex w-fit max-w-full flex-col items-start rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50", compact ? "p-1.5" : "gap-1.5 p-2.5")}>
       <Image
         src="/brand/bilimlens-logo.png"
         alt={m.common.appName}
@@ -49,7 +49,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
         sizes={compact ? "144px" : "176px"}
         className={cn("h-auto max-w-full", compact ? "w-36" : "w-44")}
       />
-      {!compact ? <span className="text-[11px] leading-snug text-[#596b65]">{m.common.appTagline}</span> : null}
+      {!compact ? <span className="text-[11px] leading-snug text-muted-foreground">{m.common.appTagline}</span> : null}
     </Link>
   );
 }
@@ -68,11 +68,11 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "sidebar-link flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/30",
+                "sidebar-link flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/30",
                 active ? "sidebar-link-active" : "",
               )}
             >
-              <item.icon className="size-4 shrink-0" strokeWidth={1.7} aria-hidden />
+              <item.icon className="size-[18px] shrink-0" strokeWidth={1.8} aria-hidden />
               {m.nav[item.label]}
             </Link>
           </li>
@@ -118,11 +118,11 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           { label: m.ux.whyHappened, paths: ["/skills", "/textbooks"] },
           { label: m.ux.whatToDo, paths: ["/hours", "/simulator", "/reports"] },
         ].map(group => <div key={group.label}>
-          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{group.label}</div>
+          <div className="mb-1.5 px-3 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">{group.label}</div>
           <NavLinks items={ANALYTICS_NAV.filter(item => group.paths.includes(item.href))} onNavigate={onNavigate} />
         </div>)}
         <div>
-          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{m.nav.data}</div>
+          <div className="mb-1.5 px-3 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">{m.nav.data}</div>
           <NavLinks items={DATA_NAV} onNavigate={onNavigate} />
         </div>
       </nav>
@@ -150,13 +150,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const collapsed = React.useSyncExternalStore(subscribeSidebar, getSidebarSnapshot, getSidebarServerSnapshot);
   const { m } = useI18n();
   return (
-    <div className={cn("app-workspace min-h-dvh lg:grid", collapsed ? "lg:grid-cols-[0px_minmax(0,1fr)]" : "lg:grid-cols-[232px_minmax(0,1fr)]")}>
+    <div className={cn("app-workspace min-h-dvh lg:grid", collapsed ? "lg:grid-cols-[0px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]")}>
       <a href="#main-content" className="sr-only z-50 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2">{m.nav.skipToContent}</a>
       <aside id="desktop-sidebar" aria-hidden={collapsed || undefined} className={cn("sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar lg:col-start-1", collapsed ? "lg:hidden" : "lg:block")}>
         <SidebarContent />
       </aside>
       <div className="min-w-0 lg:col-start-2">
-        <div className="sticky top-0 z-30 hidden h-11 items-center border-b bg-background px-4 lg:flex lg:px-8" data-print-hide>
+        <div className="sticky top-0 z-30 hidden h-12 items-center bg-background/85 px-4 backdrop-blur lg:flex lg:px-8" data-print-hide>
           <Button variant="ghost" size="sm" onClick={() => setSidebarCollapsed(!collapsed)} aria-expanded={!collapsed} aria-controls="desktop-sidebar">
             {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
             {collapsed ? m.ux.showSidebar : m.ux.hideSidebar}

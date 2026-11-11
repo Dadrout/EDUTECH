@@ -21,9 +21,9 @@ export function PageHeader({
     document.title = `${title} · ${m.common.appName}`;
   }, [title, m.common.appName]);
   return (
-    <div className="page-heading flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <div className="page-heading flex flex-col gap-3 pb-2 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="font-editorial text-[27px] leading-tight font-semibold tracking-[-0.025em] text-balance sm:text-[34px]">{title}</h1>
+        <h1 className="font-display text-[28px] leading-[1.1] font-bold tracking-[-0.03em] text-balance sm:text-[34px]">{title}</h1>
         {description ? <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -47,10 +47,10 @@ export function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={cn("analytical-section min-w-0 overflow-hidden rounded-xl border bg-card", className)}>
+    <section id={id} className={cn("analytical-section min-w-0 overflow-hidden rounded-xl border bg-card shadow-card", className)}>
       <div className="section-heading flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-[15px] leading-snug font-semibold tracking-[-0.01em]">{title}</h2>
+          <h2 className="text-base leading-snug font-semibold tracking-[-0.015em]">{title}</h2>
           {description ? <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{description}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -96,11 +96,12 @@ export function KpiTile({
   tone?: "default" | "low" | "medium" | "high";
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 bg-card px-5 py-4">
-      <div className="text-[13px] font-medium text-muted-foreground">{label}</div>
+    <div data-slot="kpi" className="flex min-w-0 flex-col gap-2 bg-card px-5 py-5">
+      <div data-kpi-part="label" className="text-[13px] font-medium text-muted-foreground">{label}</div>
       <div
+        data-kpi-part="value"
         className={cn(
-          "text-[28px] leading-none font-semibold tracking-[-0.02em] tabular",
+          "text-[34px] leading-none font-bold tracking-[-0.035em] tabular",
           tone === "low" && "text-level-low-fg",
           tone === "medium" && "text-level-medium-fg",
           tone === "high" && "text-level-high-fg",
@@ -108,7 +109,7 @@ export function KpiTile({
       >
         {value}
       </div>
-      {sub ? <div className="text-xs text-pretty text-muted-foreground">{sub}</div> : null}
+      {sub ? <div data-kpi-part="sub" className="text-xs text-pretty text-muted-foreground">{sub}</div> : null}
     </div>
   );
 }
