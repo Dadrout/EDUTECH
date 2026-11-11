@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "generate:demo": "node --import tsx scripts/generate-demo-data.ts",
     "build:webpack": "next build --webpack",
-    "test:e2e": "node e2e/smoke.mjs && node e2e/analytics-suite.mjs"
+    "test:e2e": "node e2e/smoke.mjs && node e2e/analytics-suite.mjs",
+    "pdf:preview": "node --import tsx scripts/generate-report-preview.ts",
+    "test:pdf": "vitest run tests/pdf.test.ts",
+    "verify:pdf": "python3 scripts/verify-report-pdf.py"
   },
   "dependencies": {
     "@fontsource-variable/onest": "^5.3.1",
@@ -27,7 +30,9 @@
     "read-excel-file": "^9.3.14",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "pdf-lib": "1.17.1",
+    "@pdf-lib/fontkit": "1.1.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

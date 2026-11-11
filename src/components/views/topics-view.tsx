@@ -4,6 +4,7 @@ import * as React from "react";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Info } from "lucide-react";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, MethodNote, PageHeader, RateBar, Section } from "@/components/common/blocks";
+import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
 import { FilterBar } from "@/components/common/filter-bar";
 import { LEVEL_META, LevelBadge, StatusBadge, STATUS_META } from "@/components/common/levels";
 import { Heatmap, HeatmapLegend } from "@/components/charts/heatmap";
@@ -94,6 +95,7 @@ function TopicsContent() {
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "rate", dir: 1 });
   const [chartOrder, setChartOrder] = React.useState<"rate" | "program">("rate");
+  const [visualization, setVisualization] = React.useState<"ranking" | "matrix">("ranking");
   const [selectedKey, setSelectedKey] = React.useState<string | null>(null);
 
   const counts = React.useMemo(() => {
@@ -124,6 +126,12 @@ function TopicsContent() {
     }));
   }, [topics, statusFilter, chartOrder, showContext]);
 
+  const matrixRows = React.useMemo(() => heatmap?.rows ?? [], [heatmap]);
+  const matrixPage = usePagination(matrixRows, 12);
+  const chartPage = usePagination(chartData, 8);
+  const tablePage = usePagination(visible, 12);
+  const weakest = [...visible].filter((topic) => topic.sufficient).sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1))[0];
+
   const selected = topics.find((t) => t.key === selectedKey) ?? null;
   const onSort = (k: SortKey) => setSort((s) => (s.key === k ? { key: k, dir: s.dir === 1 ? -1 : 1 } : { key: k, dir: k === "name" || k === "order" ? 1 : k === "rate" || k === "status" ? 1 : -1 }));
 
@@ -137,6 +145,9 @@ function TopicsContent() {
 
   return (
     <div className="grid grid-cols-1 gap-5">
+      <Finding title={weakest ? weakest.topicName : m.topics.insufficientData} tone={weakest && isProblemStatus(weakest.status) ? "warning" : "default"} actions={weakest ? <button type="button" onClick={() => setSelectedKey(weakest.key)} className="rounded-md px-3 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline focus-visible:ring-2 focus-visible:ring-ring">{m.common.more}</button> : null}>
+        {weakest ? <div className="flex flex-wrap items-center gap-x-4 gap-y-2"><StatusBadge status={weakest.status} /><span className="font-semibold">{formatPct(weakest.rate)}</span><span>{m.units.ci}: {formatCi(weakest.estimate?.ciLow, weakest.estimate?.ciHigh)}</span><span>{t(m.units.studentsShort, { n: weakest.students })} · {t(m.units.answersShort, { n: weakest.answers })}</span></div> : <p>{t(m.topics.methodSample, { students: config.minStudentsPerTopic, answers: config.minAnswersPerTopic })}</p>}
+      </Finding>
       <div className="flex flex-wrap gap-2" role="group" aria-label={m.topics.statusFilter}>
         <button
           type="button"
@@ -180,7 +191,11 @@ function TopicsContent() {
         })}
       </div>
 
-      <Section
+      <div className="flex flex-wrap gap-2" role="group" aria-label={m.ux.visualization}>
+        {([["ranking", m.topics.chartTitle], ["matrix", m.topics.heatmapTitle]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={visualization === value} onClick={() => setVisualization(value)} className={cn("rounded-md border px-4 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring", visualization === value ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-secondary")}>{label}</button>)}
+      </div>
+
+      {visualization === "ranking" ? <Section
         title={m.topics.chartTitle}
         description={m.topics.chartDescription}
         actions={
@@ -208,20 +223,20 @@ function TopicsContent() {
       >
         <div className="px-3 py-4 sm:px-5">
           {chartData.length > 0 ? (
-            <TopicBarChart data={chartData} thresholds={config.thresholds} onSelect={setSelectedKey} ariaLabel={m.topics.chartTitle} />
+            <TopicBarChart data={chartPage.rows} thresholds={config.thresholds} onSelect={setSelectedKey} ariaLabel={m.topics.chartTitle} />
           ) : (
             <EmptyState icon={Info} title={m.topics.noTopicsWithStatus} />
           )}
         </div>
-      </Section>
-
-      <Section
+        <Pagination page={chartPage.page} pageCount={chartPage.pageCount} total={chartPage.total} start={chartPage.start} end={chartPage.end} onPageChange={chartPage.setPage} />
+      </Section> : <Section
         title={m.topics.heatmapTitle}
         description={singleCourse ? m.topics.heatmapDescription : m.topics.heatmapNeedsCourse}
       >
         {heatmap && heatmap.columns.length > 0 ? (
           <>
-            <Heatmap data={heatmap} thresholds={config.thresholds} />
+            <Heatmap data={{ ...heatmap, rows: matrixPage.rows, cells: heatmap.cells.slice(matrixPage.start - 1, matrixPage.end) }} thresholds={config.thresholds} />
+            <Pagination {...matrixPage} onPageChange={matrixPage.setPage} />
             <div className="border-t px-5 py-3">
               <HeatmapLegend thresholds={config.thresholds} />
             </div>
@@ -243,10 +258,11 @@ function TopicsContent() {
               ))}
           </div>
         )}
-      </Section>
+      </Section>}
 
-      <Section
+      <Disclosure
         title={m.topics.tableTitle}
+        count={visible.length}
         description={t(m.topics.tableDescription, { visible: visible.length, total: topics.length })}
       >
         <div className="overflow-x-auto">
@@ -264,7 +280,7 @@ function TopicsContent() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {visible.map((row) => {
+              {tablePage.rows.map((row) => {
                 const problem = isProblemStatus(row.status);
                 return (
                   <tr
@@ -321,7 +337,8 @@ function TopicsContent() {
             </tbody>
           </table>
         </div>
-      </Section>
+        <Pagination page={tablePage.page} pageCount={tablePage.pageCount} total={tablePage.total} start={tablePage.start} end={tablePage.end} onPageChange={tablePage.setPage} />
+      </Disclosure>
 
       <TopicDetailSheet topic={selected} records={records} config={config} onClose={() => setSelectedKey(null)} />
     </div>

@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "BilimLens Editorial";
+  src: url("/fonts/editorial/NotoSerif-SemiBold.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
 /*
  * Дизайн-токены BilimLens.
  * Светлая тема (проектор, печать отчётов). Нейтральные цвета холодные, в тон
@@ -121,6 +129,7 @@
 
   --font-sans: "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  --font-editorial: "BilimLens Editorial", "Noto Serif", Georgia, serif;
 }
 
 @layer base {
@@ -191,17 +200,19 @@
 
 .workspace-sidebar { color: var(--sidebar-foreground); background: var(--sidebar); }
 .workspace-sidebar .text-muted-foreground { color: var(--sidebar-muted); }
-.workspace-sidebar .fill-primary { fill: #b3d8c4; }
-.workspace-sidebar .stroke-foreground { stroke: var(--sidebar-foreground); }
 .workspace-sidebar .border-t { border-color: var(--sidebar-border); }
 .workspace-sidebar .sidebar-link { color: var(--sidebar-muted); }
 .workspace-sidebar .sidebar-link:hover,
 .workspace-sidebar a:hover { background: var(--sidebar-hover); color: var(--sidebar-foreground); }
 .workspace-sidebar .sidebar-link-active,
 .workspace-sidebar .sidebar-link-active:hover { background: var(--sidebar-active); color: #153d35; }
+.workspace-sidebar a.brand-lockup:hover { background: #ffffff; }
 .workspace-sidebar [role="combobox"] { background: var(--sidebar); color: var(--sidebar-foreground); border-color: var(--sidebar-border); }
 .report-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); background: var(--muted); }
 .report-table td { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
 .report-table tbody tr:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.detail-disclosure > summary::-webkit-details-marker { display: none; }
+.detail-disclosure[open] > summary { margin-bottom: 0.5rem; }
+.finding { padding-top: 0.25rem; }
 input, textarea { caret-color: var(--primary); }
 :root { scrollbar-color: #b3c5b9 var(--background); scrollbar-width: thin; }

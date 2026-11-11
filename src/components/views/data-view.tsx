@@ -3,13 +3,14 @@
 import * as React from "react";
 import { AlertTriangle, Database, Download, FlaskConical, HardDrive, RotateCcw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { Disclosure, Pagination, usePagination } from "@/components/common/exploration";
 import { DataGate } from "@/components/common/data-gate";
 import { PageHeader, Section } from "@/components/common/blocks";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/misc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { curriculumTemplateCsv, downloadCsv, resultsTemplateCsv } from "@/lib/data/export";
+import { curriculumTemplateCsv, downloadCsv, resultsTemplateCsv, toCsv } from "@/lib/data/export";
 import { DEMO_CURRICULUM_URL, DEMO_RESULTS_URL } from "@/lib/data/dataset";
 import { CURRICULUM_COLUMNS, RESULT_COLUMNS, type ColumnSpec } from "@/lib/data/schema";
 import { useI18n } from "@/i18n/provider";
@@ -152,6 +153,40 @@ function ColumnsTable({ columns, kind }: { columns: ColumnSpec<string>[]; kind: 
   );
 }
 
+/** Normalized source observations, available in full without an unbounded table. */
+function SourceRows<T extends object>({ rows, columns, name }: { rows: T[]; columns: ColumnSpec<Extract<keyof T, string>>[]; name: string }) {
+  const { m } = useI18n();
+  const p = usePagination(rows, 12);
+  const value = (row: T, key: Extract<keyof T, string>) => {
+    const cell = row[key];
+    return cell == null ? "" : typeof cell === "boolean" ? Number(cell) : String(cell);
+  };
+  return <div className="overflow-hidden rounded-xl border bg-card">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4"><p className="text-xs text-muted-foreground">{m.ux.observations}</p><Button size="sm" variant="outline" onClick={() => downloadCsv(`BilimLens-${name}.csv`, toCsv(columns.map(c => c.name), rows.map(row => columns.map(c => value(row, c.key)))))}><Download aria-hidden />CSV · {m.ux.allData}</Button></div>
+    <div className="overflow-x-auto"><table className="report-table w-full text-xs"><thead><tr>{columns.map(column => <th key={column.key} className="whitespace-nowrap">{column.name}</th>)}</tr></thead><tbody>{p.rows.map((row, i) => <tr key={p.start + i}>{columns.map(column => <td key={column.key} className="max-w-64 min-w-24 break-words">{value(row, column.key) === "" ? "—" : value(row, column.key)}</td>)}</tr>)}</tbody></table></div>
+    <Pagination {...p} onPageChange={p.setPage} />
+  </div>;
+}
+
+function SourceExplorer() {
+  const { dataset } = useReadyData();
+  const { m } = useI18n();
+  return <Disclosure title={m.ux.allData} count={dataset.records.length}>
+    <Tabs defaultValue="answers"><TabsList><TabsTrigger value="answers">{m.data.tabResults}</TabsTrigger><TabsTrigger value="plan">{m.data.tabPlan}</TabsTrigger></TabsList>
+      <TabsContent value="answers"><SourceRows rows={dataset.records} columns={RESULT_COLUMNS} name="results" /></TabsContent>
+      <TabsContent value="plan"><SourceRows rows={dataset.curriculum} columns={CURRICULUM_COLUMNS} name="curriculum" /></TabsContent>
+    </Tabs>
+  </Disclosure>;
+}
+
+function DataQualityHint() {
+  const { dataset } = useReadyData();
+  const { m } = useI18n();
+  const coverage = React.useMemo(() => checkCurriculumCoverage(dataset.curriculum, dataset.records), [dataset.records, dataset.curriculum]);
+  const partial = coverage.coursesWithoutPlan.length > 0 || coverage.resultsWithoutPlan.length > 0;
+  return <p role="note" className="text-sm text-muted-foreground">{formatInt(dataset.records.length)} · {m.data.statAnswers.toLowerCase()} · {dataset.meta.isSynthetic ? m.data.syntheticBadge : m.data.uploadedBadge}{dataset.curriculum.length === 0 ? ` · ${m.data.noPlanTitle}` : partial ? ` · ${m.data.partialPlanTitle}` : ""}</p>;
+}
+
 export function DataView() {
   const [tab, setTab] = React.useState<"results" | "curriculum">("results");
   const { m } = useI18n();
@@ -159,8 +194,7 @@ export function DataView() {
     <div className="grid grid-cols-1 gap-5">
       <PageHeader title={m.data.title} description={m.data.description} />
       <DataGate>
-        <CurrentDataset />
-
+        <DataQualityHint />
         <Section title={m.data.importTitle} description={m.data.importDescription}>
           <div className="px-5 py-4">
             <Tabs value={tab} onValueChange={(v) => setTab(v as "results" | "curriculum")}>
@@ -178,6 +212,9 @@ export function DataView() {
           </div>
         </Section>
 
+        <SourceExplorer />
+        <Disclosure title={m.data.currentTitle}><CurrentDataset /></Disclosure>
+        <Disclosure title={m.data.privacyTitle}>
         <Alert variant="default">
           <ShieldCheck aria-hidden />
           <AlertTitle>{m.data.privacyTitle}</AlertTitle>
@@ -185,7 +222,9 @@ export function DataView() {
             <p>{m.data.privacyText}</p>
           </AlertDescription>
         </Alert>
+        </Disclosure>
 
+        <Disclosure title={m.data.formatTitle}>
         <Section
           title={m.data.formatTitle}
           description={m.data.formatDescription}
@@ -224,6 +263,7 @@ export function DataView() {
             </div>
           </div>
         </Section>
+        </Disclosure>
       </DataGate>
     </div>
   );

@@ -14,8 +14,8 @@ colors:
   sidebar-active: "#d8ebde"
 typography:
   headline:
-    fontFamily: "Onest Variable, sans-serif"
-    fontSize: "30px"
+    fontFamily: "BilimLens Editorial, Noto Serif, Georgia, serif"
+    fontSize: "34px"
     fontWeight: 600
     lineHeight: 1.25
     letterSpacing: "-0.025em"
@@ -50,7 +50,7 @@ components:
 
 ## Overview
 
-Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations. The interface places data and uncertainty before decoration. Keep the existing bars-and-threshold logo.
+Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations. The interface places data and uncertainty before decoration. Use the official user-supplied BilimLens logo (magnifying glass, book and bars) and its original wordmark. Present the full logo on white for legibility in the dark sidebar; use its symbol for browser icons.
 
 This document records implemented code decisions. Rendering, responsive appearance and PDF pagination have **not** been verified in this sandbox; see `docs/RELEASE.md`. No current screenshots are approved visual references. The direction helper ran without its remote catalogue; the product brief supplied the direction.
 
@@ -60,11 +60,11 @@ Deep green anchors navigation; warm neutral surfaces keep charts legible. Status
 
 ## Typography
 
-Self-hosted Onest, using the existing dependency. Page headings scale from 25px to 30px; section headings 15px; body 14px, dense tables 13px, annotation 12px. Numeric columns use tabular lining numerals. Monospace is reserved for actual identifiers.
+Self-hosted Onest for controls, tables and body copy; licensed Noto Serif SemiBold (BilimLens Editorial) for page headings and the leading finding. Both provide Cyrillic support. Page headings scale from 27px to 34px; section headings 15px; body 14px, dense tables 13px, annotation 12px. Numeric columns use tabular lining numerals. Monospace is reserved for actual identifiers.
 
 ## Layout
 
-Desktop: 232px persistent navigation at 1024px and above, content capped at 1480px with 36px gutters. Below 1024px: 56px mobile header and accessible drawer; 16px gutters, increasing to 24px at 640px. Charts keep their existing narrow-screen behavior. Wide tables scroll inside their own containers.
+Desktop: 232px navigation at 1024px and above, content capped at 1480px with 36px gutters. A sticky, labelled toolbar toggle hides the entire rail and expands content to the full available width; the same control restores it. The preference persists locally; its server snapshot stays expanded to avoid hydration mismatch. Below 1024px: 56px mobile header and accessible drawer; 16px gutters, increasing to 24px at 640px. Charts keep their existing narrow-screen behavior. Wide tables scroll inside their own containers.
 
 ## Elevation & Depth
 
@@ -78,7 +78,7 @@ Sections use 16px corners; controls 10px. Horizontal chart geometry communicates
 
 `AppShell` owns navigation and a keyboard skip link. `PageHeader` owns the document title and page heading; `Section`, `KpiTile`, `RateBar` and the existing tables/charts share tokens. Use disabled controls when an action is invalid. Keep loading, error, empty and insufficient-data states in the established data gate.
 
-Reports print to A4 with repeated table headings and hidden navigation/actions. Do not truncate report rows. Allow arbitrary imported identifiers to wrap in print; remove decorative bars from printed table cells. Browser pagination still needs QA.
+Reports use a dedicated pdf-lib text/vector document: five A4 landscape summary pages and a separately paginated full appendix. Web evidence uses tabs, collapsed details and page controls; every original row remains reachable. No full-page screenshot export.
 
 ## Do's and Don'ts
 

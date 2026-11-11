@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertOctagon, AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Info, RotateCcw } from "lucide-react";
+import { AlertOctagon, AlertTriangle, Download, FileSpreadsheet, Info, RotateCcw } from "lucide-react";
 import { CoursePicker } from "@/components/common/course-picker";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, MethodNote, PageHeader, Section } from "@/components/common/blocks";
+import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
 import { FilterBar } from "@/components/common/filter-bar";
 import { LEVEL_META } from "@/components/common/levels";
 import { HoursChangeChart } from "@/components/charts/hours-change-chart";
@@ -27,6 +28,8 @@ import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 import { HoursScenario } from "./hours-scenario";
 import { SyntheticNotice } from "./overview-view";
+
+const EMPTY_HOURS_ROWS: HoursRow[] = [];
 
 function parseNum(value: string): number {
   const n = Number(value.trim().replace(",", "."));
@@ -116,6 +119,7 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
     [form, config.thresholds.medium],
   );
   const plan = React.useMemo(() => recommendHours(inputs, params), [inputs, params]);
+  const rowPage = usePagination(plan.ok ? plan.rows : EMPTY_HOURS_ROWS, 8);
 
   if (inputs.length === 0) {
     return (
@@ -152,16 +156,15 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <Section
+      {plan.ok && !scenarioOnly ? <Finding title={t(m.hours.okTitle, { recommended: formatHours(plan.recommendedTotal), reserve: formatHours(plan.reserveHours), budget: formatHours(plan.budgetHours) })} tone="success" actions={<Button asChild><Link href="/simulator">{m.nav.simulator}</Link></Button>}><p>{plural(m.hours.kpiChanged, changed)} · {m.hours.kpiMoved}: {formatHours(plan.movedHours)}</p><p className="mt-1 text-xs text-muted-foreground">{m.hours.method6}</p></Finding> : null}
+      <Disclosure
         title={m.hours.paramsTitle}
         description={m.hours.paramsDescription}
-        actions={
-          <Button variant="ghost" size="sm" onClick={() => setForm(defaults)}>
+      >
+        <div className="flex justify-end px-5 pt-3"><Button variant="ghost" size="sm" onClick={() => setForm(defaults)}>
             <RotateCcw aria-hidden />
             {m.hours.defaults}
-          </Button>
-        }
-      >
+          </Button></div>
         <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2 lg:grid-cols-5">
           <ParamField id="budget" label={m.hours.budget} value={form.budget} onChange={set("budget")} suffix={m.hours.hoursSuffix} hint={t(m.hours.budgetHint, { hours: formatHours(total) })} />
           <ParamField id="target" label={m.hours.target} value={form.target} onChange={set("target")} suffix="%" hint={m.hours.targetHint} />
@@ -181,7 +184,7 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
             <span className="text-[11px] text-muted-foreground">{m.hours.stepHint}</span>
           </div>
         </div>
-      </Section>
+      </Disclosure>
 
       {!plan.ok ? (
         <Alert variant="destructive">
@@ -217,17 +220,7 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
             ))}
           </div>
 
-          <div className="flex flex-col gap-3">
-            <Alert variant="success">
-              <CheckCircle2 aria-hidden />
-              <AlertTitle>
-                {t(m.hours.okTitle, { recommended: formatHours(plan.recommendedTotal), reserve: formatHours(plan.reserveHours), budget: formatHours(plan.budgetHours) })}
-              </AlertTitle>
-              <AlertDescription>
-                <p>{m.hours.okText}</p>
-              </AlertDescription>
-            </Alert>
-          </div>
+
 
           <Section
             title={m.hours.chartTitle}
@@ -244,20 +237,19 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
             }
           >
             <div className="px-5 py-4">
-              <HoursChangeChart rows={plan.rows} />
+              <HoursChangeChart rows={rowPage.rows} />
             </div>
+            <Pagination page={rowPage.page} pageCount={rowPage.pageCount} total={rowPage.total} start={rowPage.start} end={rowPage.end} onPageChange={rowPage.setPage} />
           </Section>
 
-          <Section
+          <Disclosure
             title={m.hours.tableTitle}
             description={m.hours.tableDescription}
-            actions={
-              <Button variant="outline" size="sm" onClick={() => exportPlan(plan.rows, subject, grade, plan.reserveHours)}>
+          >
+            <div className="flex justify-end p-3"><Button variant="outline" size="sm" onClick={() => exportPlan(plan.rows, subject, grade, plan.reserveHours)}>
                 <Download aria-hidden />
                 {m.hours.downloadCsv}
-              </Button>
-            }
-          >
+              </Button></div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-[13px]">
                 <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
@@ -272,7 +264,7 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {plan.rows.map((r) => {
+                  {rowPage.rows.map((r) => {
                     const meta = LEVEL_META[r.level];
                     return (
                       <tr key={r.key} className="align-top">
@@ -332,7 +324,8 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
                 </tfoot>
               </table>
             </div>
-          </Section>
+            <Pagination page={rowPage.page} pageCount={rowPage.pageCount} total={rowPage.total} start={rowPage.start} end={rowPage.end} onPageChange={rowPage.setPage} />
+          </Disclosure>
 
           </> : null}
             {plan.warnings.length > 0 || unplanned.length > 0 ? (
@@ -349,7 +342,7 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
                 </AlertDescription>
               </Alert>
             ) : null}
-          <HoursScenario key={JSON.stringify({ rows: plan.rows, params })} rows={plan.rows} params={params} subject={subject} grade={grade} />
+          {scenarioOnly ? <HoursScenario key={JSON.stringify({ rows: plan.rows, params })} rows={plan.rows} params={params} subject={subject} grade={grade} /> : null}
         </>
       )}
     </div>

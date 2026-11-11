@@ -28,12 +28,12 @@ Methodologists import CSV/XLSX test results and the curriculum plan, review the 
 - Pages: Overview, Topic Analysis (heatmap, sortable table, topic detail), Textbook Comparison, Teaching Hours, Data and Import, Methodology, Smart Error Analysis, What-if Simulator, Intelligence Reports; Analysis Settings remains a dialog.
 - Interface in 9 languages (ru source dictionary in `src/i18n/messages/ru.ts`; kk, en, zh, es, fr, de, tr, uz). All UI text goes through the dictionary; data names (subjects, topics, textbooks) are not translated.
 - Calculations, thresholds and business logic must not change for design reasons. Skills/error analysis, what-if scenarios and reports are integrated on `integration/bilimlens`; recovery sources remain in their original worktrees.
-- Stack: Next.js 16.4, React 19, Tailwind CSS 4, Radix UI, Recharts, lucide-react, Onest font.
+- Stack: Next.js 16.4, React 19, Tailwind CSS 4, Radix UI, Recharts, lucide-react, Onest controls, editorial Noto Serif headings. pdf-lib/fontkit generate local text/vector PDF with embedded Noto Sans.
 
 ## Brand Commitments
 
 - Product name: **BilimLens** (decided by the user 2026-11-11; applied in the UI, metadata and all nine dictionaries).
-- Keep the current logo: bars against a threshold line (`src/app/icon.svg`).
+- Use the official logo supplied by the user: magnifying glass, book, bars and BilimLens wordmark. Original: `docs/assets/bilimlens-logo.png`; app assets: `public/brand/bilimlens-logo.png`, `src/app/icon.png` and `src/app/favicon.ico`.
 
 ## Evidence on Hand
 
@@ -48,4 +48,8 @@ Synthetic demo data in `public/demo/` (label it synthetic wherever it could be m
 
 ## Verification boundary
 
-Unit/renderer tests, TypeScript, ESLint and production Webpack build are checked locally. This sandbox denies HTTP listening, Chromium startup and Turbopack IPC; browser visual/responsive/PDF QA and the default Turbopack build remain release gates. Existing screenshots are archived MVP evidence. No production deployment was performed.
+Unit/renderer tests, TypeScript, ESLint and production Webpack build are checked locally. This sandbox denies HTTP listening, Chromium startup and Turbopack IPC; browser visual/responsive QA and the default Turbopack build remain release gates. The independent five-page PDF and full appendix have been generated, rendered and visually inspected, with text extraction and A4 dimensions checked. Existing screenshots are archived MVP evidence. No production deployment was performed.
+
+## UX rebuild
+
+Branch `ux/report-rebuild` introduces summary/evidence/action navigation, progressive disclosure and complete paginated data access. Every data-derived finding retains its actual scope and reliability. The original integration branch remains unchanged. PDF export downloads a browser-independent five-page A4 landscape document; full detail tables form a separate paginated appendix.

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AlertTriangle, Info, ScanSearch } from "lucide-react";
+import { Disclosure, Finding, Pagination, usePagination } from "@/components/common/exploration";
 import { DataGate } from "@/components/common/data-gate";
 import { EmptyState, MethodNote, PageHeader, RateBar, Section } from "@/components/common/blocks";
 import { FilterBar } from "@/components/common/filter-bar";
@@ -22,8 +23,8 @@ import { useReadyData } from "@/providers/data-provider";
 import { SyntheticNotice } from "./overview-view";
 import { BreakdownTable } from "./topic-detail-sheet";
 
-const MAX_CHART_SKILLS = 20;
-const QUESTIONS_PREVIEW = 15;
+const MAX_CHART_SKILLS = 6;
+const QUESTIONS_PREVIEW = 12;
 const STACKED_SKILLS = 6;
 
 /** Подпись категории ошибки: известный код — из словаря, иначе текст из файла. */
@@ -91,9 +92,9 @@ function ErrorsBySkill({ skills, onSelect }: { skills: SkillStats[]; onSelect: (
 }
 
 export function QuestionTable({ questions, thresholds, showSkill, showTopic, previewLimit = QUESTIONS_PREVIEW }: { questions: QuestionStats[]; thresholds: AnalysisConfig["thresholds"]; showSkill: boolean; showTopic: boolean; previewLimit?: number }) {
-  const { m, t } = useI18n();
-  const [all, setAll] = React.useState(false);
-  const shown = all ? questions : questions.slice(0, previewLimit);
+  const { m } = useI18n();
+  const questionPage = usePagination(questions, Math.min(QUESTIONS_PREVIEW, previewLimit));
+  const shown = questionPage.rows;
   return (
     <>
       <div className="overflow-x-auto">
@@ -145,16 +146,7 @@ export function QuestionTable({ questions, thresholds, showSkill, showTopic, pre
           </tbody>
         </table>
       </div>
-      {questions.length > previewLimit ? (
-        <button
-          type="button"
-          aria-expanded={all}
-          onClick={() => setAll((v) => !v)}
-          className="w-full rounded-b-xl border-t px-5 py-2.5 text-left text-[13px] font-medium text-primary outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 focus-visible:ring-inset"
-        >
-          {all ? m.skills.showFewerQuestions : t(m.skills.showAllQuestions, { n: questions.length })}
-        </button>
-      ) : null}
+      <Pagination {...questionPage} onPageChange={questionPage.setPage} />
     </>
   );
 }
@@ -256,12 +248,15 @@ function SkillsContent() {
   const [selected, setSelected] = React.useState<string | null>(null);
 
   const { coverage, skills, errorTypes, questions } = analysis;
+  const skillPage = usePagination(skills, MAX_CHART_SKILLS);
+  const classPage = usePagination(classStats, 8);
+  const weakest = skills.find(skill => skill.sufficient);
   const multiCourse = (filters.subject === null || filters.grade === null) && courses.length > 1;
   const multiTopic = filters.topicKey === null;
 
   const chartData = React.useMemo(
     () =>
-      skills.slice(0, MAX_CHART_SKILLS).map((s) => ({
+      skillPage.rows.map((s) => ({
         key: s.key,
         name: s.skill,
         context: multiTopic ? (multiCourse ? `${s.topicName} · ${s.subject} ${s.grade}` : s.topicName) : undefined,
@@ -272,7 +267,7 @@ function SkillsContent() {
         students: s.students,
         answers: s.answers,
       })),
-    [skills, multiTopic, multiCourse],
+    [skillPage.rows, multiTopic, multiCourse],
   );
 
   if (questions.length === 0) {
@@ -288,6 +283,10 @@ function SkillsContent() {
 
   return (
     <div className="grid grid-cols-1 gap-5">
+      <Finding title={weakest ? `${weakest.skill} · ${formatPct(weakest.rate)}` : coverage.hasSkills ? m.ux.noReliableFinding : m.skills.noSkillsTitle} tone={weakest && weakest.rate !== null && weakest.rate < config.thresholds.medium / 100 ? "warning" : "default"}>
+        <p>{t(m.skills.summary, { skills: plural(m.skills.skillCount, skills.length), questions: plural(m.skills.questionCount, questions.length), answers: plural(m.counts.answers, coverage.answers) })}</p>
+        <p className="mt-1 text-xs">{t(m.ux.errorCoverage, { typed: formatInt(coverage.incorrectWithType), incorrect: formatInt(coverage.incorrect) })}</p>
+      </Finding>
       {!coverage.hasSkills ? (
         <Alert variant="default">
           <Info aria-hidden />
@@ -313,7 +312,7 @@ function SkillsContent() {
       {coverage.hasSkills && skills.length > 0 ? (
         <Section
           title={m.skills.chartTitle}
-          description={skills.length > MAX_CHART_SKILLS ? t(m.skills.chartShown, { shown: MAX_CHART_SKILLS, total: skills.length }) : m.skills.chartAll}
+          description={`${t(m.ux.rows, { start: skillPage.start, end: skillPage.end, total: skills.length })}. ${m.skills.chartAll}`}
           actions={
             <MethodNote>
               <p>
@@ -329,25 +328,28 @@ function SkillsContent() {
           <div className="px-3 py-4 sm:px-5">
             <TopicBarChart data={chartData} thresholds={config.thresholds} onSelect={setSelected} ariaLabel={m.skills.chartTitle} />
           </div>
+          <Pagination {...skillPage} onPageChange={skillPage.setPage} />
         </Section>
       ) : null}
 
       {coverage.hasErrorTypes ? (
-        <Section title={m.skills.errorsTitle} description={t(m.skills.errorsDescription, { n: coverage.incorrectWithType })}>
+        <Disclosure title={m.skills.errorsTitle} description={t(m.skills.errorsDescription, { n: coverage.incorrectWithType })} defaultOpen={!coverage.hasSkills}>
           <div className="grid grid-cols-1 gap-6 px-5 py-4 lg:grid-cols-2">
             <ErrorBars errors={errorTypes} />
             <ErrorsBySkill skills={skills} onSelect={setSelected} />
           </div>
-        </Section>
+        </Disclosure>
       ) : null}
 
+      <Disclosure title={m.ux.allData} count={questions.length}>
       <Section title={m.topicDetail.byClass} description={m.skills.classComparisonNote}>
         <div className="overflow-x-auto">
           <table className="report-table w-full min-w-[580px] text-sm">
             <thead><tr><th>{m.filters.classId}</th><th>{m.topics.colStudents}</th><th>{m.topics.colAnswers}</th><th>{m.skills.colIncorrect}</th><th>{m.skills.colErrorRate}</th><th>{m.skills.colRate}</th><th>{m.units.ci}</th></tr></thead>
-            <tbody>{classStats.map(row => <tr key={row.id}><td className="font-medium">{row.label}</td><td>{formatInt(row.students)}</td><td>{formatInt(row.answers)}</td><td>{formatInt(row.incorrect)}</td><td>{formatPct(row.answers > 0 ? row.incorrect / row.answers : null)}</td><td><div className="flex items-center gap-3"><span>{formatPct(row.estimate?.rate)}</span><RateBar rate={row.estimate?.rate ?? null} color={LEVEL_META[row.sufficient ? classifyLevel(row.estimate?.rate ?? null, config.thresholds) : "insufficient"].color} thresholds={config.thresholds} className="w-20" /></div>{!row.sufficient ? <p className="text-xs text-muted-foreground">{m.topics.insufficientData}</p> : null}</td><td className="text-xs text-muted-foreground">{formatCi(row.estimate?.ciLow, row.estimate?.ciHigh)}</td></tr>)}</tbody>
+            <tbody>{classPage.rows.map(row => <tr key={row.id}><td className="font-medium">{row.label}</td><td>{formatInt(row.students)}</td><td>{formatInt(row.answers)}</td><td>{formatInt(row.incorrect)}</td><td>{formatPct(row.answers > 0 ? row.incorrect / row.answers : null)}</td><td><div className="flex items-center gap-3"><span>{formatPct(row.estimate?.rate)}</span><RateBar rate={row.estimate?.rate ?? null} color={LEVEL_META[row.sufficient ? classifyLevel(row.estimate?.rate ?? null, config.thresholds) : "insufficient"].color} thresholds={config.thresholds} className="w-20" /></div>{!row.sufficient ? <p className="text-xs text-muted-foreground">{m.topics.insufficientData}</p> : null}</td><td className="text-xs text-muted-foreground">{formatCi(row.estimate?.ciLow, row.estimate?.ciHigh)}</td></tr>)}</tbody>
           </table>
         </div>
+        <Pagination {...classPage} onPageChange={classPage.setPage} />
       </Section>
 
       <Section
@@ -361,6 +363,7 @@ function SkillsContent() {
         <QuestionTable questions={questions} thresholds={config.thresholds} showSkill={coverage.hasSkills} showTopic={multiTopic} />
       </Section>
 
+      </Disclosure>
       <SkillDetailSheet skillKey={selected} records={records} config={config} onClose={() => setSelected(null)} />
     </div>
   );

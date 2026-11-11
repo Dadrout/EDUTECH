@@ -25,6 +25,11 @@ const go = async (page, path) => {
   await page.waitForTimeout(500);
 };
 
+async function reveal(page, title) {
+  const summary = page.locator("details > summary").filter({ hasText: title }).first();
+  if (!(await summary.evaluate(node => node.parentElement.open))) await summary.click();
+}
+
 const browser = await chromium.launch();
 // Браузер с русской локалью: интерфейс сам выбирает язык браузера, а проверки ниже — на русском.
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: "ru-RU" });
@@ -68,6 +73,7 @@ try {
   check(t.includes("Различие устойчиво"), "Алгебра 8: устойчивое различие учебников");
   check(t.includes("не доказательство причины"), "оговорка о причинности показана");
   await go(page, "/topics");
+  await reveal(page, "Таблица тем");
   await page.getByRole("button", { name: "Квадратичная функция", exact: true }).click();
   await page.getByText("Задания темы — от самых трудных").waitFor();
   check(true, "детализация темы открывается");
@@ -96,6 +102,7 @@ try {
   await go(page, "/hours");
   t = await text(page);
   check(t.includes("Ограничения соблюдены"), "план часов построен, бюджет соблюдён");
+  await reveal(page, "Параметры расчёта");
   await page.locator("#budget").fill("40");
   await page.waitForTimeout(300);
   check((await text(page)).includes("Конфликт ограничений"), "конфликт при бюджете меньше суммы минимумов");
@@ -106,6 +113,7 @@ try {
   await page.getByText("Распознанные колонки").waitFor({ timeout: 15000 });
   check(/Корректных записей\s*199/.test(await text(page)), "XLSX прочитан");
   await page.getByRole("button", { name: "Отмена" }).click();
+  await reveal(page, "Текущий набор данных");
   await page.getByRole("button", { name: "Вернуть демо-данные" }).click();
   await page.getByText("Синтетические данные").first().waitFor({ timeout: 20000 });
   check(true, "демо-данные восстановлены");

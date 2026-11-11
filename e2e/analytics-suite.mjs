@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { mkdir, readFile } from "node:fs/promises";
 import { chromium } from "playwright";
+import { PDFDocument } from "pdf-lib";
 
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const output = process.env.QA_OUTPUT_DIR ?? "/tmp/bilimlens-browser-qa";
@@ -51,8 +52,20 @@ try {
   }
 
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await go("/");
+  const expandedWidth = await page.locator("#main-content").evaluate(node => node.getBoundingClientRect().width);
+  await page.getByRole("button", { name: "Скрыть панель", exact: true }).click();
+  check(await page.locator("#desktop-sidebar").isHidden(), "desktop sidebar hides completely");
+  const collapsedWidth = await page.locator("#main-content").evaluate(node => node.getBoundingClientRect().width);
+  check(collapsedWidth > expandedWidth, "content receives the released sidebar width");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Показать панель", exact: true }).waitFor();
+  check(await page.locator("#desktop-sidebar").isHidden(), "sidebar preference survives reload");
+  await page.getByRole("button", { name: "Показать панель", exact: true }).click();
+  check(await page.locator("#desktop-sidebar").isVisible(), "desktop sidebar can be restored");
   await go("/skills");
-  check((await page.locator("main").innerText()).includes("7А"), "class statistics rendered");
+  await page.locator("details > summary").filter({ hasText: "Все данные" }).click();
+  check((await page.locator("main").innerText()).includes("7А"), "class statistics rendered on request");
   await page.getByRole("combobox", { name: "Предмет", exact: true }).click();
   await page.getByRole("option", { name: "Алгебра", exact: true }).click();
   await page.getByRole("combobox", { name: "Параллель", exact: true }).click();
@@ -78,15 +91,17 @@ try {
   check(csv.includes("custom_hours") && csv.includes("Алгебра"), "scenario CSV contains actual allocations");
 
   await go("/reports");
-  await page.waitForFunction(() => Boolean(document.querySelector(".report-document table")));
-  await page.evaluate(() => { window.__printCalled = false; window.print = () => { window.__printCalled = true; }; });
-  await page.getByRole("button", { name: "Печать / Сохранить PDF" }).click();
-  check(await page.evaluate(() => window.__printCalled), "report print action works");
-  await page.emulateMedia({ media: "print" });
-  check(await page.locator("aside").isHidden(), "print omits navigation");
-  await page.pdf({ path: `${output}/intelligence-report.pdf`, format: "A4", printBackground: true, preferCSSPageSize: true });
-  await page.emulateMedia({ media: "screen" });
-  check((await readFile(`${output}/intelligence-report.pdf`)).subarray(0, 4).toString() === "%PDF", "report produces a PDF");
+  const reportDownload = page.waitForEvent("download", { timeout: 60000 });
+  await page.getByRole("button", { name: "Скачать отчёт PDF", exact: true }).click();
+  await (await reportDownload).saveAs(`${output}/intelligence-report.pdf`);
+  const pdf = await PDFDocument.load(await readFile(`${output}/intelligence-report.pdf`));
+  check(pdf.getPageCount() === 5, "direct PDF has five summary pages");
+  check(pdf.getPages().every(p => Math.abs(p.getWidth() - 841.89) < .1 && Math.abs(p.getHeight() - 595.28) < .1), "PDF is A4 landscape, independent of viewport");
+  const appendixDownload = page.waitForEvent("download", { timeout: 60000 });
+  await page.getByRole("button", { name: "Скачать приложение PDF", exact: true }).click();
+  await (await appendixDownload).saveAs(`${output}/appendix.pdf`);
+  const appendix = await PDFDocument.load(await readFile(`${output}/appendix.pdf`));
+  check(appendix.getPageCount() > 0, "full detail appendix is generated separately");
 
   for (const [code, name] of languages) {
     await page.locator("aside [role=combobox]").click();

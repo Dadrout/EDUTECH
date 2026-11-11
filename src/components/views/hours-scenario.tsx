@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { AlertOctagon, AlertTriangle, CheckCircle2, Download, Minus, Plus, RotateCcw } from "lucide-react";
+import { Pagination, usePagination } from "@/components/common/exploration";
 import { MethodNote, Section } from "@/components/common/blocks";
 import { LEVEL_META } from "@/components/common/levels";
 import { Button } from "@/components/ui/button";
@@ -33,12 +34,15 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
   const evaluation = React.useMemo(() => evaluateScenario(rows, custom, params), [rows, custom, params]);
   // Editing is always in half-hours; recommendation step controls transfers only.
   const step = 0.5;
+  const rowPage = usePagination(rows, 6);
+  const evaluationByKey = new Map(evaluation.rows.map(row => [row.key, row]));
 
   const setHours = (key: string, value: number) => {
     const row = rows.find((r) => r.key === key);
     if (row) setCustom((prev) => ({ ...prev, [key]: Math.max(row.minHours, snapHours(value, step)) }));
   };
   const errors = evaluation.issues.filter((i) => i.severity === "error");
+  const issuePage = usePagination(evaluation.issues, 4);
   const warnings = evaluation.issues.filter((i) => i.severity === "warning");
   const errorKeys = new Set(errors.map((i) => i.key).filter(Boolean));
   const s = evaluation.custom;
@@ -101,7 +105,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
               {warnings.length > 0 ? <span className="font-normal text-muted-foreground">· {plural(m.scenario.warnings, warnings.length)}</span> : null}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-secondary" role="meter" aria-valuemin={0} aria-valuemax={params.budgetHours} aria-valuenow={s.total} aria-label={m.scenario.metricTotal}>
+          <div className="h-2 overflow-hidden rounded-full bg-secondary" role="meter" aria-valuemin={0} aria-valuemax={Math.max(1, params.budgetHours)} aria-valuenow={Math.max(0, Math.min(params.budgetHours, s.total))} aria-valuetext={t(m.scenario.budgetUsed, { total: formatHours(s.total), budget: formatHours(params.budgetHours) })} aria-label={m.scenario.metricTotal}>
             <div className={cn("h-full rounded-full", s.remaining < 0 ? "bg-level-low" : "bg-primary")} style={{ width: `${used * 100}%` }} />
           </div>
         </div>
@@ -124,8 +128,8 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
             </tr>
           </thead>
           <tbody className="divide-y">
-            {evaluation.rows.map((r, i) => {
-              const source = rows[i];
+            {rowPage.rows.map((source) => {
+              const r = evaluationByKey.get(source.key)!;
               const meta = LEVEL_META[source.level];
               const invalid = errorKeys.has(r.key);
               const max = sliderMax(source);
@@ -193,6 +197,8 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
         </table>
       </div>
 
+      <Pagination {...rowPage} onPageChange={rowPage.setPage} />
+
       {/* Ограничения и сравнение планов. */}
       <div className="grid grid-cols-1 gap-5 border-t px-5 py-4 xl:grid-cols-2">
         <div className="grid content-start gap-2">
@@ -204,7 +210,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
             </p>
           ) : (
             <ul className="grid gap-1.5 text-[13px] leading-relaxed">
-              {evaluation.issues.map((issue, idx) => (
+              {issuePage.rows.map((issue, idx) => (
                 <li key={`${issue.kind}-${issue.key ?? "budget"}-${idx}`} className="flex gap-2">
                   {issue.severity === "error" ? (
                     <AlertOctagon className="mt-0.5 size-4 shrink-0 text-level-low" aria-label={m.common.error} />
@@ -218,6 +224,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
               ))}
             </ul>
           )}
+          {evaluation.issues.length > 4 ? <Pagination {...issuePage} onPageChange={issuePage.setPage} /> : null}
         </div>
 
         <div className="grid content-start gap-2">
