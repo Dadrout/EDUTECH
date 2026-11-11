@@ -15,8 +15,8 @@ export type FilterField = "subject" | "grade" | "classId" | "textbookId" | "topi
 const ALL = "__all__";
 
 const FIELD_META: Record<FilterField, { all: "allSubjects" | "allGrades" | "allClasses" | "allTextbooks" | "allTopics"; width: string }> = {
-  subject: { all: "allSubjects", width: "sm:w-40" },
-  grade: { all: "allGrades", width: "sm:w-40" },
+  subject: { all: "allSubjects", width: "sm:w-48" },
+  grade: { all: "allGrades", width: "sm:w-48" },
   classId: { all: "allClasses", width: "sm:w-32" },
   textbookId: { all: "allTextbooks", width: "sm:w-56" },
   topicKey: { all: "allTopics", width: "sm:w-64" },
