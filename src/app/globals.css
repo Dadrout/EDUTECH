@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * Дизайн-токены Data-Driven Curriculum.
+ * Светлая тема (проектор, печать отчётов). Цвета графиков взяты из
+ * проверенной на дальтонизм палитры; уровни освоения — статусные цвета,
+ * которые всегда сопровождаются иконкой и подписью.
+ */
+:root {
+  color-scheme: light;
+  --radius: 0.5rem;
+
+  --background: #f6f6f3;
+  --foreground: #111216;
+  --card: #ffffff;
+  --card-foreground: #111216;
+  --popover: #ffffff;
+  --popover-foreground: #111216;
+  --primary: #1c5cab;
+  --primary-foreground: #ffffff;
+  --secondary: #eeeeea;
+  --secondary-foreground: #1b1c20;
+  --muted: #f0f0ec;
+  --muted-foreground: #5c5e64;
+  --accent: #edf2fa;
+  --accent-foreground: #111216;
+  --destructive: #c42f2f;
+  --border: #e2e2dc;
+  --input: #d6d6cf;
+  --ring: #2a78d6;
+
+  --sidebar: #fbfbf9;
+  --sidebar-border: #e6e6e0;
+
+  /* Уровни освоения (статус): метка + иконка + цвет */
+  --level-high: #0ca30c;
+  --level-high-bg: #e7f5e7;
+  --level-high-fg: #0a5f0a;
+  --level-medium: #f0a500;
+  --level-medium-bg: #fdf3da;
+  --level-medium-fg: #6f4a00;
+  --level-low: #d03b3b;
+  --level-low-bg: #fbe9e8;
+  --level-low-fg: #a01f1f;
+  --level-none: #b8b6af;
+  --level-none-bg: #efeeea;
+  --level-none-fg: #52514e;
+
+  /* Категориальная палитра: цвет закреплён за учебником, а не за позицией */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+
+  /* Оформление графиков */
+  --chart-grid: #ebeae5;
+  --chart-axis: #c3c2b7;
+  --chart-ink: #52514e;
+  --chart-muted: #898781;
+  --chart-neutral: #c9c7bf;
+
+  /* Расходящаяся шкала тепловой карты: красный ← серый → синий */
+  --div-neg: #c22e2a;
+  --div-mid: #efeeea;
+  --div-pos: #1a56a0;
+
+  --success-ink: #0a6b0a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-level-high: var(--level-high);
+  --color-level-high-bg: var(--level-high-bg);
+  --color-level-high-fg: var(--level-high-fg);
+  --color-level-medium: var(--level-medium);
+  --color-level-medium-bg: var(--level-medium-bg);
+  --color-level-medium-fg: var(--level-medium-fg);
+  --color-level-low: var(--level-low);
+  --color-level-low-bg: var(--level-low-bg);
+  --color-level-low-fg: var(--level-low-fg);
+  --color-level-none: var(--level-none);
+  --color-level-none-bg: var(--level-none-bg);
+  --color-level-none-fg: var(--level-none-fg);
+  --color-success-ink: var(--success-ink);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: "Onest Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11";
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+}
+
+/*
+ * В Onest моноширинные цифры дают заметный зазор после «1» («1 4 ч»),
+ * поэтому используются пропорциональные цифры; числовые столбцы выравниваются по правому краю.
+ */
+@utility tabular {
+  font-variant-numeric: proportional-nums lining-nums;
+  white-space: nowrap;
+}
+
+/* Штриховка для ячеек с недостаточными данными (вторичный канал, не только цвет) */
+@utility hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    color-mix(in oklab, var(--level-none) 45%, transparent) 5px 6px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  aside,
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+}
