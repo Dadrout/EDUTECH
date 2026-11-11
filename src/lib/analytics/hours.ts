@@ -1,7 +1,8 @@
 import type { HoursConfig } from "@/lib/config/analysis-config";
 import type { CurriculumEntry, MasteryLevel } from "@/lib/domain/types";
 import { makeTopicKey } from "@/lib/domain/types";
-import { formatHours, formatNumber } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { formatHours, formatNumber, quote } from "@/lib/format";
 import { naturalCompare } from "./filters";
 import { toPct } from "./stats";
 import type { TopicStats } from "./topics";
@@ -102,19 +103,21 @@ const fromU = (units: number) => units / UNIT;
 const isHalfMultiple = (hours: number) => Math.abs(hours * UNIT - Math.round(hours * UNIT)) < 1e-9;
 
 function validate(topics: HoursTopicInput[], p: HoursParams): string[] {
+  const { t: tr, m } = i18n();
+  const h = m.hoursPlan;
   const errors: string[] = [];
-  if (!Number.isFinite(p.budgetHours) || p.budgetHours < 0) errors.push("Бюджет часов должен быть неотрицательным числом.");
-  else if (!isHalfMultiple(p.budgetHours)) errors.push("Бюджет часов должен быть кратен 0,5 ч.");
-  if (!Number.isFinite(p.stepHours) || p.stepHours <= 0 || !isHalfMultiple(p.stepHours)) errors.push("Шаг должен быть положительным и кратным 0,5 ч.");
-  if (!Number.isFinite(p.targetPct) || p.targetPct <= 0 || p.targetPct > 100) errors.push("Целевой уровень освоения должен быть в диапазоне 1–100%.");
-  if (!Number.isFinite(p.maxIncreaseShare) || p.maxIncreaseShare < 0 || p.maxIncreaseShare > 3) errors.push("Максимальное увеличение должно быть в диапазоне 0–300%.");
-  if (!Number.isFinite(p.maxDecreaseShare) || p.maxDecreaseShare < 0 || p.maxDecreaseShare > 1) errors.push("Максимальное сокращение должно быть в диапазоне 0–100%.");
+  if (!Number.isFinite(p.budgetHours) || p.budgetHours < 0) errors.push(h.errBudget);
+  else if (!isHalfMultiple(p.budgetHours)) errors.push(h.errBudgetHalf);
+  if (!Number.isFinite(p.stepHours) || p.stepHours <= 0 || !isHalfMultiple(p.stepHours)) errors.push(h.errStep);
+  if (!Number.isFinite(p.targetPct) || p.targetPct <= 0 || p.targetPct > 100) errors.push(h.errTarget);
+  if (!Number.isFinite(p.maxIncreaseShare) || p.maxIncreaseShare < 0 || p.maxIncreaseShare > 3) errors.push(h.errIncrease);
+  if (!Number.isFinite(p.maxDecreaseShare) || p.maxDecreaseShare < 0 || p.maxDecreaseShare > 1) errors.push(h.errDecrease);
   for (const t of topics) {
     if (!Number.isFinite(t.currentHours) || t.currentHours < 0 || !isHalfMultiple(t.currentHours)) {
-      errors.push(`«${t.topicName}»: текущие часы должны быть неотрицательными и кратными 0,5.`);
+      errors.push(tr(h.errCurrent, { topic: quote(t.topicName) }));
     }
     if (!Number.isFinite(t.minHours) || t.minHours < 0 || !isHalfMultiple(t.minHours)) {
-      errors.push(`«${t.topicName}»: минимальные часы должны быть неотрицательными и кратными 0,5.`);
+      errors.push(tr(h.errMin, { topic: quote(t.topicName) }));
     }
   }
   return errors;
@@ -128,12 +131,15 @@ function levelOf(pct: number | null, sufficient: boolean, p: HoursParams): Maste
 }
 
 export function recommendHours(topics: HoursTopicInput[], params: HoursParams): HoursResult {
+  const { t: tr, m } = i18n();
+  const h = m.hoursPlan;
+  const pctText = (v: number | null) => tr(m.units.percent, { n: formatNumber(v, 1) });
   const errors = validate(topics, params);
   if (errors.length > 0) {
-    return { ok: false, kind: "invalid_input", message: "Некорректные входные данные для расчёта.", details: errors };
+    return { ok: false, kind: "invalid_input", message: h.invalidInput, details: errors };
   }
   if (topics.length === 0) {
-    return { ok: false, kind: "no_topics", message: "В учебном плане нет тем для выбранного предмета и параллели.", details: [] };
+    return { ok: false, kind: "no_topics", message: h.noTopics, details: [] };
   }
 
   const n = topics.length;
@@ -150,11 +156,15 @@ export function recommendHours(topics: HoursTopicInput[], params: HoursParams): 
       .filter((x) => x.m > 0)
       .sort((a, b) => b.m - a.m)
       .slice(0, 5)
-      .map((x) => `«${x.t.topicName}» — минимум ${formatHours(fromU(x.m))}`);
+      .map((x) => tr(h.minItem, { topic: quote(x.t.topicName), hours: formatHours(fromU(x.m)) }));
     return {
       ok: false,
       kind: "budget_below_minimum",
-      message: `Бюджет ${formatHours(params.budgetHours)} меньше суммы минимальных часов (${formatHours(fromU(minTotal))}). Допустимый план невозможен: увеличьте бюджет минимум на ${formatHours(fromU(minTotal - B))} или пересмотрите минимальные часы в учебном плане.`,
+      message: tr(h.budgetBelowMinimum, {
+        budget: formatHours(params.budgetHours),
+        minTotal: formatHours(fromU(minTotal)),
+        shortfall: formatHours(fromU(minTotal - B)),
+      }),
       details: top,
     };
   }
@@ -261,8 +271,8 @@ export function recommendHours(topics: HoursTopicInput[], params: HoursParams): 
     return {
       ok: false,
       kind: "invalid_input",
-      message: "Внутренняя проверка плана не пройдена — план не сформирован.",
-      details: [`Сумма: ${fromU(allocTotal)} + резерв ${fromU(reserve)} ≠ бюджет ${fromU(B)}.`],
+      message: h.internalCheck,
+      details: [tr(h.internalCheckDetail, { sum: fromU(allocTotal), reserve: fromU(reserve), budget: fromU(B) })],
     };
   }
 
@@ -270,42 +280,45 @@ export function recommendHours(topics: HoursTopicInput[], params: HoursParams): 
     const reasons: string[] = [];
     const p = pct[i];
     if (cur[i] < min[i]) {
-      reasons.push(`Текущие часы (${formatHours(fromU(cur[i]))}) ниже минимума (${formatHours(fromU(min[i]))}) — подняты до минимума.`);
+      reasons.push(tr(h.raisedToMin, { current: formatHours(fromU(cur[i])), min: formatHours(fromU(min[i])) }));
     }
     if (roles[i] === "no_data") {
-      reasons.push("Нет результатов тестирования по теме — изменение часов не обосновано данными, часы не меняются.");
+      reasons.push(h.noResults);
     } else if (roles[i] === "frozen") {
-      reasons.push(`Недостаточно данных (${t.students} уч., ${t.answers} отв.) — вывод об освоении ненадёжен, часы не меняются.`);
+      reasons.push(tr(h.insufficient, { students: t.students, answers: t.answers }));
     } else if (roles[i] === "recipient") {
-      const levelText = (p as number) < params.mediumPct ? "Низкий" : "Средний";
       reasons.push(
-        `${levelText} уровень освоения (${formatNumber(p, 1)}%): ниже цели ${formatNumber(T, 0)}% на ${formatNumber(T - (p as number), 1)} п.п., приоритет ${formatNumber(priority[i], 2)}.`,
+        tr(h.belowTarget, {
+          level: (p as number) < params.mediumPct ? h.levelLow : h.levelMedium,
+          rate: pctText(p),
+          target: tr(m.units.percent, { n: formatNumber(T, 0) }),
+          gap: tr(m.units.pp, { n: formatNumber(T - (p as number), 1) }),
+          priority: formatNumber(priority[i], 2),
+        }),
       );
       if (given[i] > 0) {
         reasons.push(
           given[i] < demand[i]
-            ? `Добавлено ${formatHours(fromU(given[i]))} из оценённой потребности ${formatHours(fromU(demand[i]))} — свободных часов не хватило.`
-            : `Добавлено ${formatHours(fromU(given[i]))} (потребность покрыта полностью).`,
+            ? tr(h.addedPartial, { given: formatHours(fromU(given[i])), demand: formatHours(fromU(demand[i])) })
+            : tr(h.addedFull, { given: formatHours(fromU(given[i])) }),
         );
       } else if (demand[i] === 0) {
-        reasons.push(`Расчётная прибавка меньше шага ${formatHours(params.stepHours)} — без изменений.`);
+        reasons.push(tr(h.belowStep, { step: formatHours(params.stepHours) }));
       } else {
-        reasons.push("Свободных часов для перераспределения не осталось — без изменений.");
+        reasons.push(h.noFreeHours);
       }
     } else {
-      reasons.push(`Высокий уровень освоения (${formatNumber(p, 1)}%).`);
+      reasons.push(tr(h.high, { rate: pctText(p) }));
       if (released[i] > 0) {
-        reasons.push(`${formatHours(fromU(released[i]))} передано темам с более низким освоением; минимум ${formatHours(fromU(min[i]))} соблюдён.`);
+        reasons.push(tr(h.released, { hours: formatHours(fromU(released[i])), min: formatHours(fromU(min[i])) }));
       } else if (releaseCap[i] === 0) {
-        reasons.push("Запас для передачи меньше шага или ограничен минимумом — без изменений.");
+        reasons.push(h.releaseLimited);
       } else if (cutBy[i] === 0) {
-        reasons.push("Передача часов другим темам не потребовалась — без изменений.");
+        reasons.push(h.releaseNotNeeded);
       }
     }
     if (cutBy[i] > 0) {
-      reasons.push(
-        `Сокращено на ${formatHours(fromU(cutBy[i]))} для соблюдения бюджета: в первую очередь сокращаются темы с более высоким освоением и запасом над минимумом.`,
-      );
+      reasons.push(tr(h.cut, { hours: formatHours(fromU(cutBy[i])) }));
     }
     return {
       key: t.key,
@@ -332,17 +345,13 @@ export function recommendHours(topics: HoursTopicInput[], params: HoursParams): 
   const unmet = demand.reduce((s, d, i) => s + Math.max(0, d - given[i]), 0);
   const warnings: string[] = [];
   if (B !== toU(currentTotal)) {
-    warnings.push(`Бюджет (${formatHours(fromU(B))}) отличается от текущей суммы часов по плану (${formatHours(currentTotal)}).`);
+    warnings.push(tr(h.budgetDiffers, { budget: formatHours(fromU(B)), current: formatHours(currentTotal) }));
   }
   if (unmet > 0) {
-    warnings.push(
-      `Потребность тем с низким освоением покрыта частично: не хватило ${formatHours(fromU(unmet))}. Можно увеличить бюджет или допустимое сокращение тем-доноров.`,
-    );
+    warnings.push(tr(h.unmet, { hours: formatHours(fromU(unmet)) }));
   }
   if (reserve > 0) {
-    warnings.push(
-      `${formatHours(fromU(reserve))} не распределено и оставлено в резерве: темы ниже цели уже получили максимально допустимую прибавку.`,
-    );
+    warnings.push(tr(h.reserveLeft, { hours: formatHours(fromU(reserve)) }));
   }
 
   return {

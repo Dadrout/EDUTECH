@@ -4,6 +4,7 @@ import * as React from "react";
 import { Info, type LucideIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/provider";
 
 export function PageHeader({
   title,
@@ -14,10 +15,15 @@ export function PageHeader({
   description?: React.ReactNode;
   actions?: React.ReactNode;
 }) {
+  const { m } = useI18n();
+  // Заголовок вкладки браузера — на языке интерфейса (метаданные страниц статичны и русские).
+  React.useEffect(() => {
+    document.title = `${title} · ${m.common.appName}`;
+  }, [title, m.common.appName]);
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="page-heading flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-[22px] leading-tight font-semibold tracking-[-0.01em] text-balance sm:text-2xl">{title}</h1>
+        <h1 className="text-[25px] leading-tight font-semibold tracking-[-0.025em] text-balance sm:text-[30px]">{title}</h1>
         {description ? <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -41,10 +47,10 @@ export function Section({
   id?: string;
 }) {
   return (
-    <section id={id} className={cn("rounded-xl border bg-card", className)}>
-      <div className="flex flex-col gap-2 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+    <section id={id} className={cn("analytical-section min-w-0 overflow-hidden rounded-xl border bg-card", className)}>
+      <div className="section-heading flex flex-col gap-2 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h2 className="text-[15px] leading-snug font-semibold">{title}</h2>
+          <h2 className="text-[15px] leading-snug font-semibold tracking-[-0.01em]">{title}</h2>
           {description ? <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{description}</p> : null}
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -55,7 +61,9 @@ export function Section({
 }
 
 /** Пояснение «как рассчитано» — доступно по клику и с клавиатуры. */
-export function MethodNote({ title = "Как рассчитано", children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+export function MethodNote({ title: titleProp, children, className }: { title?: string; children: React.ReactNode; className?: string }) {
+  const { m } = useI18n();
+  const title = titleProp ?? m.common.howCalculated;
   return (
     <Popover>
       <PopoverTrigger

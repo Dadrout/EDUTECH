@@ -9,16 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_ANALYSIS_CONFIG, validateAnalysisConfig, type AnalysisConfig } from "@/lib/config/analysis-config";
 import { useData } from "@/providers/data-provider";
+import { useI18n } from "@/i18n/provider";
 
 type NumericKey = Exclude<keyof AnalysisConfig, "thresholds" | "confidenceZ">;
 
-const SAMPLE_FIELDS: { key: NumericKey; label: string; hint: string }[] = [
-  { key: "minStudentsPerTopic", label: "Учеников на тему", hint: "минимум для вывода о сложности" },
-  { key: "minAnswersPerTopic", label: "Ответов на тему", hint: "минимум для вывода о сложности" },
-  { key: "minStudentsPerCell", label: "Учеников в ячейке", hint: "тепловая карта «класс × тема»" },
-  { key: "minStudentsPerGroup", label: "Учеников в группе учебника", hint: "для сравнения учебников" },
-  { key: "minCommonQuestions", label: "Общих заданий", hint: "для сравнения учебников по теме" },
-  { key: "minAnswersPerStudent", label: "Ответов ученика", hint: "для распределения учеников по уровням" },
+const SAMPLE_FIELDS: { key: NumericKey }[] = [
+  { key: "minStudentsPerTopic" },
+  { key: "minAnswersPerTopic" },
+  { key: "minStudentsPerCell" },
+  { key: "minStudentsPerGroup" },
+  { key: "minCommonQuestions" },
+  { key: "minAnswersPerStudent" },
 ];
 
 function toNumber(value: string): number {
@@ -28,6 +29,7 @@ function toNumber(value: string): number {
 
 export function SettingsDialog({ trigger }: { trigger?: React.ReactNode }) {
   const { config, setConfig } = useData();
+  const { m } = useI18n();
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<Record<string, string>>({});
 
@@ -56,16 +58,14 @@ export function SettingsDialog({ trigger }: { trigger?: React.ReactNode }) {
         {trigger ?? (
           <Button variant="outline" size="sm">
             <SlidersHorizontal aria-hidden />
-            Параметры анализа
+            {m.settings.title}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Параметры анализа</DialogTitle>
-          <DialogDescription>
-            Пороги — начальная настройка MVP, а не утверждённый образовательный стандарт. Изменения сразу применяются ко всем страницам.
-          </DialogDescription>
+          <DialogTitle>{m.settings.title}</DialogTitle>
+          <DialogDescription>{m.settings.description}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -79,28 +79,28 @@ export function SettingsDialog({ trigger }: { trigger?: React.ReactNode }) {
           }}
         >
           <fieldset className="grid gap-3">
-            <legend className="mb-1 text-[13px] font-semibold">Уровни освоения, % правильных ответов</legend>
+            <legend className="mb-1 text-[13px] font-semibold">{m.settings.levelsLegend}</legend>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="th-high">Высокий — от</Label>
+                <Label htmlFor="th-high">{m.settings.highFrom}</Label>
                 <Input id="th-high" inputMode="numeric" value={draft.high ?? ""} onChange={(e) => setDraft({ ...draft, high: e.target.value })} />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="th-medium">Средний — от</Label>
+                <Label htmlFor="th-medium">{m.settings.mediumFrom}</Label>
                 <Input id="th-medium" inputMode="numeric" value={draft.medium ?? ""} onChange={(e) => setDraft({ ...draft, medium: e.target.value })} />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">Ниже порога среднего уровня — низкий уровень освоения (сложная тема).</p>
+            <p className="text-xs text-muted-foreground">{m.settings.belowMedium}</p>
           </fieldset>
 
           <fieldset className="grid gap-3">
-            <legend className="mb-1 text-[13px] font-semibold">Минимальный объём выборки</legend>
+            <legend className="mb-1 text-[13px] font-semibold">{m.settings.sampleLegend}</legend>
             <div className="grid gap-3 sm:grid-cols-2">
               {SAMPLE_FIELDS.map((f) => (
                 <div key={f.key} className="grid gap-1.5">
-                  <Label htmlFor={`cfg-${f.key}`}>{f.label}</Label>
+                  <Label htmlFor={`cfg-${f.key}`}>{m.settings.fields[f.key].label}</Label>
                   <Input id={`cfg-${f.key}`} inputMode="numeric" value={draft[f.key] ?? ""} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} />
-                  <span className="text-[11px] text-muted-foreground">{f.hint}</span>
+                  <span className="text-[11px] text-muted-foreground">{m.settings.fields[f.key].hint}</span>
                 </div>
               ))}
             </div>
@@ -129,14 +129,14 @@ export function SettingsDialog({ trigger }: { trigger?: React.ReactNode }) {
                 setDraft(d);
               }}
             >
-              Значения по умолчанию
+              {m.settings.defaults}
             </Button>
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                Отмена
+                {m.common.cancel}
               </Button>
               <Button type="submit" disabled={errors.length > 0}>
-                Применить
+                {m.common.apply}
               </Button>
             </div>
           </DialogFooter>

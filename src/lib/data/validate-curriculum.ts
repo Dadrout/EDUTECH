@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n/core";
 import type { AnswerRecord, CurriculumEntry } from "@/lib/domain/types";
 import { makeTopicKey, topicKeyOf } from "@/lib/domain/types";
 import { IssueCollector, previewIndices, type TablePreview, type ValidationIssue } from "./issues";
@@ -22,10 +23,10 @@ export function validateCurriculum(table: RawTable): CurriculumValidation {
   const mapping = mapColumns(table.headers, CURRICULUM_COLUMNS);
   const issues = new IssueCollector();
   const fatal: string[] = [];
-  if (mapping.missingRequired.length > 0) fatal.push(`Не найдены обязательные колонки: ${mapping.missingRequired.join(", ")}.`);
-  if (table.rows.length === 0) fatal.push("В файле нет строк с данными.");
+  if (mapping.missingRequired.length > 0) fatal.push(i18n().t(i18n().m.validation.missingColumns, { columns: mapping.missingRequired.join(", ") }));
+  if (table.rows.length === 0) fatal.push(i18n().m.validation.noRows);
   if (mapping.unknownHeaders.length > 0) {
-    issues.note("warning", "unknown-headers", `Колонки не используются: ${mapping.unknownHeaders.join(", ")}.`, mapping.unknownHeaders.length);
+    issues.note("warning", "unknown-headers", i18n().t(i18n().m.validation.unknownHeadersPlan, { columns: mapping.unknownHeaders.join(", ") }), mapping.unknownHeaders.length);
   }
   const idx = mapping.indexOf;
   const get = (row: string[], key: CurriculumColumnKey) => (idx[key] >= 0 ? (row[idx[key]] ?? "").trim() : "");
@@ -56,13 +57,13 @@ export function validateCurriculum(table: RawTable): CurriculumValidation {
     let bad = false;
     for (const key of ["subject", "grade", "topicId", "currentHours", "minHours"] as const) {
       if (get(row, key) === "") {
-        issues.add("error", `empty-${key}`, `Пустое значение в обязательной колонке ${CURRICULUM_COLUMNS.find((c) => c.key === key)!.name}.`, rowNumber);
+        issues.add("error", `empty-${key}`, i18n().t(i18n().m.validation.emptyValue, { column: CURRICULUM_COLUMNS.find((c) => c.key === key)!.name }), rowNumber);
         bad = true;
       }
     }
     const grade = get(row, "grade") === "" ? null : parseGrade(get(row, "grade"));
     if (get(row, "grade") !== "" && grade === null) {
-      issues.add("error", "bad-grade", "Некорректная параллель: ожидается целое число от 1 до 12.", rowNumber);
+      issues.add("error", "bad-grade", i18n().m.validation.badGradePlan, rowNumber);
       bad = true;
     }
     const hours = (key: "currentHours" | "minHours", label: string): number | null => {
@@ -70,12 +71,12 @@ export function validateCurriculum(table: RawTable): CurriculumValidation {
       if (raw === "") return null;
       const value = parseNonNegativeNumber(raw);
       if (value === null) {
-        issues.add("error", `bad-${key}`, `${label}: ожидается неотрицательное число.`, rowNumber);
+        issues.add("error", `bad-${key}`, i18n().t(i18n().m.validation.hoursNotNumber, { column: label }), rowNumber);
         bad = true;
         return null;
       }
       if (!isHalfHourMultiple(value)) {
-        issues.add("error", `half-${key}`, `${label}: значение должно быть кратно 0,5 ч.`, rowNumber);
+        issues.add("error", `half-${key}`, i18n().t(i18n().m.validation.hoursNotHalf, { column: label }), rowNumber);
         bad = true;
         return null;
       }
@@ -88,7 +89,7 @@ export function validateCurriculum(table: RawTable): CurriculumValidation {
       return;
     }
     if (minHours > currentHours) {
-      issues.add("warning", "min-above-current", "Минимум часов больше текущих часов — при расчёте тема будет поднята до минимума.", rowNumber);
+      issues.add("warning", "min-above-current", i18n().m.validation.minAboveCurrent, rowNumber);
     }
     parsed.push({
       index: i,
@@ -119,12 +120,12 @@ export function validateCurriculum(table: RawTable): CurriculumValidation {
     );
     if (same) {
       for (const p of list.slice(1)) {
-        issues.add("warning", "duplicate", "Точные дубликаты строк плана удалены.", p.rowNumber);
+        issues.add("warning", "duplicate", i18n().m.validation.duplicatePlan, p.rowNumber);
         duplicates.add(p.index);
       }
     } else {
       for (const p of list) {
-        issues.add("error", "conflict", "Тема указана в плане несколько раз с разными часами — строки исключаются.", p.rowNumber);
+        issues.add("error", "conflict", i18n().m.validation.conflictPlan, p.rowNumber);
         rowError.add(p.index);
       }
     }

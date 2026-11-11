@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ScanSearch } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useReadyData } from "@/providers/data-provider";
 import { LEVEL_META, StatusBadge, STATUS_META } from "@/components/common/levels";
 import { RateBar } from "@/components/common/blocks";
 import { Alert, AlertDescription } from "@/components/ui/misc";
@@ -11,8 +14,10 @@ import { computeTopicDetail, type BreakdownRow, type TopicStats } from "@/lib/an
 import type { AnalysisConfig } from "@/lib/config/analysis-config";
 import type { AnswerRecord } from "@/lib/domain/types";
 import { formatCi, formatDate, formatInt, formatPct } from "@/lib/format";
+import { useI18n } from "@/i18n/provider";
 
-function BreakdownTable({ title, rows, config, minNote }: { title: string; rows: BreakdownRow[]; config: AnalysisConfig; minNote: string }) {
+export function BreakdownTable({ title, rows, config, minNote }: { title: string; rows: BreakdownRow[]; config: AnalysisConfig; minNote: string }) {
+  const { m, t } = useI18n();
   if (rows.length === 0) return null;
   return (
     <div>
@@ -21,9 +26,9 @@ function BreakdownTable({ title, rows, config, minNote }: { title: string; rows:
         <table className="w-full text-[13px]">
           <thead className="bg-muted/60 text-xs text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 text-left font-medium">Группа</th>
-              <th className="px-3 py-2 text-right font-medium">Уч.</th>
-              <th className="w-[38%] px-3 py-2 text-left font-medium">Успешность</th>
+              <th className="px-3 py-2 text-left font-medium">{m.topicDetail.colGroup}</th>
+              <th className="px-3 py-2 text-right font-medium">{m.topicDetail.colStudents}</th>
+              <th className="w-[38%] px-3 py-2 text-left font-medium">{m.topicDetail.colRate}</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -47,7 +52,7 @@ function BreakdownTable({ title, rows, config, minNote }: { title: string; rows:
           </tbody>
         </table>
       </div>
-      {rows.some((r) => !r.sufficient) ? <p className="mt-1.5 text-[11px] text-muted-foreground">Серым — {minNote}.</p> : null}
+      {rows.some((r) => !r.sufficient) ? <p className="mt-1.5 text-[11px] text-muted-foreground">{t(m.topicDetail.greyNote, { note: minNote })}</p> : null}
     </div>
   );
 }
@@ -64,6 +69,9 @@ export function TopicDetailSheet({
   config: AnalysisConfig;
   onClose: () => void;
 }) {
+  const { m, t, plural } = useI18n();
+  const router = useRouter();
+  const { setFilters } = useReadyData();
   const detail = React.useMemo(() => (topic ? computeTopicDetail(records, topic.key, config) : null), [topic, records, config]);
 
   return (
@@ -73,7 +81,7 @@ export function TopicDetailSheet({
           <>
             <SheetHeader className="border-b">
               <div className="text-xs text-muted-foreground">
-                {topic.subject} · {topic.grade} класс · {topic.topicId}
+                {t(m.units.courseDot, { subject: topic.subject, grade: topic.grade })} · {topic.topicId}
               </div>
               <SheetTitle className="text-lg">{topic.topicName}</SheetTitle>
               <SheetDescription asChild>
@@ -82,15 +90,29 @@ export function TopicDetailSheet({
                   <span className="text-xs">{STATUS_META[topic.status].hint}</span>
                 </div>
               </SheetDescription>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Переход к анализу ошибок с фильтром по этой теме.
+                    setFilters({ subject: topic.subject, grade: topic.grade, classId: null, textbookId: null, topicKey: topic.key });
+                    router.push("/skills");
+                  }}
+                >
+                  <ScanSearch aria-hidden />
+                  {m.skills.openForTopic}
+                </Button>
+              </div>
             </SheetHeader>
 
             <div className="grid grid-cols-1 gap-6 p-5">
               <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
                 {[
-                  ["Успешность", formatPct(topic.rate)],
-                  ["95% ДИ", formatCi(topic.estimate?.ciLow, topic.estimate?.ciHigh)],
-                  ["Учеников", formatInt(topic.students)],
-                  ["Ответов / заданий", `${formatInt(topic.answers)} / ${formatInt(topic.questions)}`],
+                  [m.topicDetail.rate, formatPct(topic.rate)],
+                  [m.units.ci, formatCi(topic.estimate?.ciLow, topic.estimate?.ciHigh)],
+                  [m.topicDetail.students, formatInt(topic.students)],
+                  [m.topicDetail.answersQuestions, `${formatInt(topic.answers)} / ${formatInt(topic.questions)}`],
                 ].map(([label, value]) => (
                   <div key={label} className="bg-card px-3 py-2.5">
                     <dt className="text-[11px] text-muted-foreground">{label}</dt>
@@ -103,25 +125,25 @@ export function TopicDetailSheet({
                 <Alert variant="warning">
                   <AlertTriangle aria-hidden />
                   <AlertDescription>
-                    <p>{topic.sampleNote} Выводы о сложности темы не делаются.</p>
+                    <p>{t(m.topicDetail.noConclusion, { note: topic.sampleNote })}</p>
                   </AlertDescription>
                 </Alert>
               ) : null}
 
-              <BreakdownTable title="По классам" rows={detail.byClass} config={config} minNote={`меньше ${config.minStudentsPerCell} учеников`} />
-              <BreakdownTable title="По учебникам" rows={detail.byTextbook} config={config} minNote={`меньше ${config.minStudentsPerGroup} учеников`} />
+              <BreakdownTable title={m.topicDetail.byClass} rows={detail.byClass} config={config} minNote={plural(m.counts.fewerStudents, config.minStudentsPerCell)} />
+              <BreakdownTable title={m.topicDetail.byTextbook} rows={detail.byTextbook} config={config} minNote={plural(m.counts.fewerStudents, config.minStudentsPerGroup)} />
 
               <div>
-                <h3 className="mb-1 text-[13px] font-semibold">Задания темы — от самых трудных</h3>
-                <p className="mb-2 text-xs text-muted-foreground">Помогает понять, какие именно умения не сформированы.</p>
+                <h3 className="mb-1 text-[13px] font-semibold">{m.topicDetail.questionsTitle}</h3>
+                <p className="mb-2 text-xs text-muted-foreground">{m.topicDetail.questionsHint}</p>
                 <div className="overflow-hidden rounded-lg border">
                   <table className="w-full text-[13px]">
                     <thead className="bg-muted/60 text-xs text-muted-foreground">
                       <tr>
-                        <th className="px-3 py-2 text-left font-medium">Тест · задание</th>
-                        <th className="px-3 py-2 text-left font-medium">Дата</th>
-                        <th className="px-3 py-2 text-right font-medium">Ответов</th>
-                        <th className="px-3 py-2 text-right font-medium">Верно</th>
+                        <th className="px-3 py-2 text-left font-medium">{m.topicDetail.colTestQuestion}</th>
+                        <th className="px-3 py-2 text-left font-medium">{m.topicDetail.colDate}</th>
+                        <th className="px-3 py-2 text-right font-medium">{m.topicDetail.colAnswers}</th>
+                        <th className="px-3 py-2 text-right font-medium">{m.topicDetail.colCorrect}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -138,7 +160,7 @@ export function TopicDetailSheet({
                     </tbody>
                   </table>
                 </div>
-                {detail.questions.length > 12 ? <p className="mt-1.5 text-[11px] text-muted-foreground">Показаны 12 из {detail.questions.length} заданий.</p> : null}
+                {detail.questions.length > 12 ? <p className="mt-1.5 text-[11px] text-muted-foreground">{t(m.topicDetail.shownOf, { shown: 12, total: detail.questions.length })}</p> : null}
               </div>
             </div>
           </>

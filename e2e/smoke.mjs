@@ -26,7 +26,8 @@ const go = async (page, path) => {
 };
 
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+// Браузер с русской локалью: интерфейс сам выбирает язык браузера, а проверки ниже — на русском.
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: "ru-RU" });
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));
 page.on("console", (m) => {
@@ -108,6 +109,21 @@ try {
   await page.getByRole("button", { name: "Вернуть демо-данные" }).click();
   await page.getByText("Синтетические данные").first().waitFor({ timeout: 20000 });
   check(true, "демо-данные восстановлены");
+
+  // 7. Смена языка интерфейса: тексты, расчётные выводы и числа переводятся, выбор запоминается.
+  await go(page, "/");
+  await page.getByRole("combobox", { name: "Язык интерфейса" }).first().click();
+  await page.getByRole("option", { name: "English" }).click();
+  await page.getByText("Performance overview").waitFor({ timeout: 15000 });
+  t = await text(page);
+  check(t.includes("Main problems found") && /Students\s*300/.test(t) && (await page.evaluate(() => document.documentElement.lang)) === "en", "интерфейс переключается на английский");
+  await page.reload({ waitUntil: "networkidle" });
+  await page.getByText("Performance overview").waitFor({ timeout: 15000 });
+  check(true, "выбранный язык сохраняется после перезагрузки");
+  await page.getByRole("combobox", { name: "Interface language" }).first().click();
+  await page.getByRole("option", { name: "Русский" }).click();
+  await page.getByText("Обзор успеваемости").waitFor({ timeout: 15000 });
+  check(true, "возврат к русскому языку");
 
   check(errors.length === 0, `нет ошибок в консоли${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);
 } catch (e) {

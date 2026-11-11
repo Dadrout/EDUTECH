@@ -1,7 +1,8 @@
 import type { AnalysisConfig } from "@/lib/config/analysis-config";
 import type { AnswerRecord } from "@/lib/domain/types";
 import { questionKeyOf, topicKeyOf } from "@/lib/domain/types";
-import { formatPct, formatPp, formatPpRange, quote } from "@/lib/format";
+import { i18n } from "@/i18n/core";
+import { formatPct, formatPp, formatPpAbs, formatPpRange, quote } from "@/lib/format";
 import { compareTopics, naturalCompare } from "./filters";
 import { clusteredProportion, differenceOfProportions, type ClusterCount, type DifferenceEstimate, type ProportionEstimate } from "./stats";
 
@@ -263,31 +264,32 @@ export function compareTextbooks(input: TextbookComparisonInput): TextbookCompar
     const missing = selected.filter((id) => !byTb.has(id));
     if (missing.length > 0) {
       status = "missing_textbook";
-      notes.push(`Нет результатов по учебнику ${missing.map((id) => quote(names.get(id) ?? id)).join(", ")}.`);
+      notes.push(i18n().t(i18n().m.textbookAnalysis.noResults, { names: missing.map((id) => quote(names.get(id) ?? id)).join(i18n().m.common.listSep) }));
     } else if (common.size < config.minCommonQuestions) {
       status = "no_common_questions";
-      notes.push(
-        `Общих заданий: ${common.size} (нужно не меньше ${config.minCommonQuestions}). Учебники проверялись разными заданиями — результаты несопоставимы.`,
-      );
+      notes.push(i18n().t(i18n().m.textbookAnalysis.fewCommon, { n: common.size, min: config.minCommonQuestions }));
     } else {
       const small = selected.filter((id) => (cells[id]?.students ?? 0) < config.minStudentsPerGroup);
       if (small.length > 0) {
         status = "insufficient_data";
         notes.push(
-          `Меньше ${config.minStudentsPerGroup} учеников на общих заданиях: ${small.map((id) => quote(names.get(id) ?? id)).join(", ")}.`,
+          i18n().t(i18n().m.textbookAnalysis.fewStudents, {
+            min: config.minStudentsPerGroup,
+            names: small.map((id) => quote(names.get(id) ?? id)).join(i18n().m.common.listSep),
+          }),
         );
       }
     }
     const unionSize = unionByTopic.get(tk) ?? 0;
     if (status === "comparable" && common.size < unionSize) {
-      notes.push(`Сравнение по ${common.size} общим заданиям из ${unionSize}: остальные задания выполняли не все группы.`);
+      notes.push(i18n().t(i18n().m.textbookAnalysis.partialCommon, { n: common.size, total: unionSize }));
     }
     if (status === "comparable") {
       const dates = selected.map((id) => cells[id]).filter((c): c is TextbookTopicCell => c !== null && c.firstDate !== null);
       for (let i = 0; i < dates.length; i++) {
         for (let j = i + 1; j < dates.length; j++) {
           if (daysBetween(dates[i].firstDate!, dates[j].firstDate!) > DATE_GAP_DAYS) {
-            notes.push("Группы писали тест с разницей более 30 дней — сроки изучения темы могли отличаться.");
+            notes.push(i18n().m.textbookAnalysis.dateGap);
             i = dates.length;
             break;
           }
@@ -364,20 +366,17 @@ export function compareTextbooks(input: TextbookComparisonInput): TextbookCompar
     };
   });
 
+  const { t, m } = i18n();
   const warnings: string[] = [];
-  if (selected.length < 2) warnings.push("Для сравнения выберите не менее двух учебников.");
+  if (selected.length < 2) warnings.push(m.textbookAnalysis.selectTwo);
   for (const g of groups) {
     if (g.classes.length === 1) {
-      warnings.push(
-        `${quote(g.textbookName)} используется только в одном классе (${g.classes[0]}): влияние учебника невозможно отделить от особенностей класса и учителя.`,
-      );
+      warnings.push(t(m.textbookAnalysis.oneClass, { name: quote(g.textbookName), classId: g.classes[0] }));
     }
   }
   const excluded = topics.length - comparableTopics.length;
   if (excluded > 0) {
-    warnings.push(
-      `${excluded} из ${topics.length} тем исключены из итогового сравнения: нет данных по одному из учебников, мало учеников или разные наборы заданий.`,
-    );
+    warnings.push(t(m.textbookAnalysis.excludedTopics, { excluded, total: topics.length }));
   }
 
   const verdicts = selected
@@ -397,9 +396,7 @@ export function compareTextbooks(input: TextbookComparisonInput): TextbookCompar
 }
 
 /** Модуль разницы без знака: «4,2 п.п.». */
-function ppAbs(diff: number): string {
-  return formatPp(Math.abs(diff)).replace(/^[+±]/, "");
-}
+const ppAbs = (diff: number): string => formatPpAbs(diff);
 
 function classRange(group: TextbookGroupSummary): { min: number; max: number; count: number } | null {
   const rates = group.classBreakdown.filter((c) => c.sufficient && c.estimate).map((c) => c.estimate!.rate);
@@ -416,6 +413,8 @@ function buildVerdict(
 ): PairVerdict {
   const g = groups.find((x) => x.textbookId === id)!;
   const ref = groups.find((x) => x.textbookId === referenceId)!;
+  const { t, m } = i18n();
+  const ta = m.textbookAnalysis;
   const a = quote(g.textbookName);
   const b = quote(ref.textbookName);
   const base = { textbookId: id, referenceId };
@@ -425,8 +424,8 @@ function buildVerdict(
       ...base,
       level: "insufficient",
       diff: null,
-      summary: `Недостаточно данных для сравнения ${a} и ${b}: нет ни одной сопоставимой темы.`,
-      reasons: ["Ни по одной теме нет общих заданий с достаточным числом учеников в обеих группах."],
+      summary: t(ta.noComparableSummary, { a, b }),
+      reasons: [ta.noComparableReason],
     };
   }
   const small = [g, ref].filter((x) => x.comparableStudents < config.minStudentsPerGroup);
@@ -436,26 +435,23 @@ function buildVerdict(
       ...base,
       level: "insufficient",
       diff,
-      summary: `Недостаточно данных для сравнения ${a} и ${b}.`,
-      reasons: small.map(
-        (x) => `${quote(x.textbookName)}: ${x.comparableStudents} учеников на общих заданиях (нужно не меньше ${config.minStudentsPerGroup}).`,
-      ),
+      summary: t(ta.insufficientSummary, { a, b }),
+      reasons: small.map((x) => t(ta.insufficientReason, { name: quote(x.textbookName), n: x.comparableStudents, min: config.minStudentsPerGroup })),
     };
   }
 
-  const range = `95% ДИ: ${formatPpRange(diff.ciLow, diff.ciHigh)}`;
+  const range = t(ta.range, { range: formatPpRange(diff.ciLow, diff.ciHigh) });
   if (!diff.significant) {
     return {
       ...base,
       level: "no_difference",
       diff,
-      summary: `Различие между учебниками ${a} и ${b} (${formatPp(diff.diff)}) не выходит за пределы статистической погрешности (${range}).`,
-      reasons: ["Доверительный интервал разницы включает ноль — данных недостаточно, чтобы утверждать, что результаты различаются."],
+      summary: t(ta.noDifferenceSummary, { a, b, diff: formatPp(diff.diff), range }),
+      reasons: [ta.noDifferenceReason],
     };
   }
 
-  const direction = diff.diff > 0 ? "выше" : "ниже";
-  const summary = `Ученики, занимающиеся по учебнику ${a}, выполнили общие задания в среднем на ${ppAbs(diff.diff)} ${direction}, чем по учебнику ${b} (${range}).`;
+  const summary = t(diff.diff > 0 ? ta.higherSummary : ta.lowerSummary, { a, b, pp: ppAbs(diff.diff), range });
 
   const reasons: string[] = [];
   const higher = diff.diff > 0 ? g : ref;
@@ -465,23 +461,21 @@ function buildVerdict(
   let consistent = true;
   if (g.classes.length < 2 || ref.classes.length < 2) {
     consistent = false;
-    reasons.push("Как минимум один учебник используется только в одном классе — эффект учебника смешан с эффектом класса и учителя.");
+    reasons.push(ta.singleClassReason);
   }
   if (hr && lr) {
     if (hr.min <= lr.max) {
       consistent = false;
-      reasons.push(
-        `Различие не воспроизводится во всех классах: худший класс по ${quote(higher.textbookName)} — ${formatPct(hr.min)}, лучший класс по ${quote(lower.textbookName)} — ${formatPct(lr.max)}.`,
-      );
+      reasons.push(t(ta.notReproduced, { higher: quote(higher.textbookName), min: formatPct(hr.min), lower: quote(lower.textbookName), max: formatPct(lr.max) }));
     }
     const spread = Math.max(hr.max - hr.min, lr.max - lr.min);
     if (spread >= Math.abs(diff.diff)) {
       consistent = false;
-      reasons.push(`Разброс между классами одного учебника (до ${ppAbs(spread)}) сопоставим с разницей между учебниками.`);
+      reasons.push(t(ta.spread, { pp: ppAbs(spread) }));
     }
   } else {
     consistent = false;
-    reasons.push("Недостаточно данных по отдельным классам, чтобы проверить устойчивость различия.");
+    reasons.push(ta.noClassData);
   }
 
   if (consistent) {
@@ -489,8 +483,8 @@ function buildVerdict(
       ...base,
       level: "consistent",
       diff,
-      summary: `${summary} Различие воспроизводится в каждом классе.`,
-      reasons: ["Это статистическая связь, а не доказательство причины: подготовка классов и работа учителей не контролируются."],
+      summary: t(ta.reproduced, { summary }),
+      reasons: [ta.causality],
     };
   }
   return { ...base, level: "preliminary", diff, summary, reasons };

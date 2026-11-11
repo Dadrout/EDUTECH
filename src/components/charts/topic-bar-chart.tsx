@@ -5,7 +5,8 @@ import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, Responsiv
 import { LEVEL_META } from "@/components/common/levels";
 import type { MasteryThresholds } from "@/lib/config/analysis-config";
 import type { MasteryLevel } from "@/lib/domain/types";
-import { formatCi, formatInt, formatPct } from "@/lib/format";
+import { formatCi, formatInt, formatPct, formatPercentValue } from "@/lib/format";
+import { useI18n } from "@/i18n/provider";
 import { AXIS_TICK, ChartTooltipCard, TooltipRow } from "./chart-tooltip";
 import { useNarrow } from "./use-narrow";
 
@@ -48,6 +49,7 @@ export function TopicBarChart({
   ariaLabel: string;
 }) {
   const narrow = useNarrow();
+  const { m, t } = useI18n();
   const labelWidth = narrow ? 130 : 290;
   // ~6,8 px на символ при 12px — обрезаем подпись, чтобы она не выходила за край.
   const maxChars = Math.floor((labelWidth - 12) / 6.8);
@@ -63,7 +65,7 @@ export function TopicBarChart({
             type="number"
             domain={[0, 100]}
             ticks={[0, 20, 40, 60, 80, 100]}
-            tickFormatter={(v: number) => `${v}%`}
+            tickFormatter={(v: number) => formatPercentValue(v)}
             tick={AXIS_TICK}
             axisLine={{ stroke: "var(--chart-axis)" }}
             tickLine={false}
@@ -91,14 +93,14 @@ export function TopicBarChart({
             stroke="var(--chart-ink)"
             strokeOpacity={0.6}
             strokeDasharray="4 3"
-            label={{ value: `${thresholds.medium}%`, position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
+            label={{ value: formatPercentValue(thresholds.medium), position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
           />
           <ReferenceLine
             x={thresholds.high}
             stroke="var(--chart-ink)"
             strokeOpacity={0.35}
             strokeDasharray="4 3"
-            label={{ value: `${thresholds.high}%`, position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
+            label={{ value: formatPercentValue(thresholds.high), position: "top", fill: "var(--chart-muted)", fontSize: 10 }}
           />
           <Tooltip
             cursor={{ fill: "var(--accent)", opacity: 0.6 }}
@@ -107,10 +109,10 @@ export function TopicBarChart({
               if (!row) return null;
               return (
                 <ChartTooltipCard title={row.label}>
-                  <TooltipRow color={LEVEL_META[row.level].color} label={`Уровень: ${LEVEL_META[row.level].label.toLowerCase()}`} value={formatPct(row.rate)} />
-                  <TooltipRow label="95% ДИ" value={formatCi(row.ciLow, row.ciHigh)} />
-                  <TooltipRow label="Учеников / ответов" value={`${formatInt(row.students)} / ${formatInt(row.answers)}`} />
-                  {onSelect ? <div className="pt-1 text-[11px]">Нажмите, чтобы открыть детализацию</div> : null}
+                  <TooltipRow color={LEVEL_META[row.level].color} label={t(m.levels.tooltipLevel, { level: LEVEL_META[row.level].label.toLowerCase() })} value={formatPct(row.rate)} />
+                  <TooltipRow label={m.units.ci} value={formatCi(row.ciLow, row.ciHigh)} />
+                  <TooltipRow label={m.charts.topicTooltipCounts} value={`${formatInt(row.students)} / ${formatInt(row.answers)}`} />
+                  {onSelect ? <div className="pt-1 text-[11px]">{m.charts.clickForDetail}</div> : null}
                 </ChartTooltipCard>
               );
             }}
@@ -131,7 +133,7 @@ export function TopicBarChart({
             <LabelList
               dataKey="value"
               position="right"
-              formatter={(v: unknown) => (typeof v === "number" ? `${Math.round(v)}%` : "")}
+              formatter={(v: unknown) => (typeof v === "number" ? formatPercentValue(Math.round(v)) : "")}
               style={{ fill: "var(--chart-ink)", fontSize: 11, stroke: "var(--card)", strokeWidth: 3, paintOrder: "stroke" }}
             />
           </Bar>

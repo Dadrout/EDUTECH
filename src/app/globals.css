@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 
 /*
- * Дизайн-токены Data-Driven Curriculum.
+ * Дизайн-токены BilimLens.
  * Светлая тема (проектор, печать отчётов). Нейтральные цвета холодные, в тон
  * основному синему. Цвет несёт смысл: уровни освоения, учебники, тепловая карта;
  * интерфейс вокруг данных остаётся нейтральным. Цвета графиков взяты из
@@ -11,29 +11,33 @@
  */
 :root {
   color-scheme: light;
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 
-  --background: #f4f5f7;
-  --foreground: #12141a;
+  --background: #f5f7f6;
+  --foreground: #192d2a;
   --card: #ffffff;
-  --card-foreground: #12141a;
+  --card-foreground: #192d2a;
   --popover: #ffffff;
-  --popover-foreground: #12141a;
-  --primary: #1c5cab;
+  --popover-foreground: #192d2a;
+  --primary: #176254;
   --primary-foreground: #ffffff;
-  --secondary: #eceef2;
-  --secondary-foreground: #1a1d24;
-  --muted: #eef0f3;
-  --muted-foreground: #575e6b;
-  --accent: #e9eff9;
-  --accent-foreground: #12141a;
+  --secondary: #edf2ef;
+  --secondary-foreground: #233e36;
+  --muted: #f0f4f2;
+  --muted-foreground: #596b65;
+  --accent: #e3f0e9;
+  --accent-foreground: #174f40;
   --destructive: #c42f2f;
-  --border: #dfe3e9;
-  --input: #c5ccd6;
-  --ring: #2a78d6;
+  --border: #dce5df;
+  --input: #bdcec4;
+  --ring: #277c67;
 
-  --sidebar: #fafbfc;
-  --sidebar-border: #e3e6eb;
+  --sidebar: #153d35;
+  --sidebar-border: #31564b;
+  --sidebar-foreground: #e6f1ea;
+  --sidebar-muted: #b3c9bd;
+  --sidebar-active: #d8ebde;
+  --sidebar-hover: #214e41;
 
   /* Уровни освоения (статус): метка + иконка + цвет */
   --level-high: #2c8442;
@@ -137,11 +141,10 @@
 }
 
 /*
- * В Onest моноширинные цифры дают заметный зазор после «1» («1 4 ч»),
- * поэтому используются пропорциональные цифры; числовые столбцы выравниваются по правому краю.
+ * Aligned numeric columns use tabular numerals; labels retain proportional type.
  */
 @utility tabular {
-  font-variant-numeric: proportional-nums lining-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
 }
 
@@ -169,4 +172,36 @@
   [data-print-hide] {
     display: none !important;
   }
+  @page { size: A4; margin: 14mm 12mm; }
+  html, body { background: white !important; color: #182822 !important; }
+  .app-workspace { display: block !important; }
+  #main-content { max-width: none; padding: 0; }
+  .report-document { gap: 5mm; font-size: 10pt; }
+  .report-document .analytical-section { overflow: visible; border-radius: 0; }
+  .report-document .overflow-x-auto { overflow: visible; }
+  .report-document table { min-width: 0 !important; table-layout: auto; font-size: 9pt; }
+  .report-document th, .report-document td { padding: 2mm !important; overflow-wrap: anywhere; }
+  .report-document .whitespace-nowrap { white-space: normal !important; overflow-wrap: anywhere; }
+  .report-document td [aria-hidden="true"] { display: none !important; }
+  .report-document thead { display: table-header-group; }
+  .report-document tr, .report-document .section-heading, .report-masthead { break-inside: avoid; }
+  .report-document h2, .report-document h3 { break-after: avoid; }
+  .report-document button { display: none !important; }
 }
+
+.workspace-sidebar { color: var(--sidebar-foreground); background: var(--sidebar); }
+.workspace-sidebar .text-muted-foreground { color: var(--sidebar-muted); }
+.workspace-sidebar .fill-primary { fill: #b3d8c4; }
+.workspace-sidebar .stroke-foreground { stroke: var(--sidebar-foreground); }
+.workspace-sidebar .border-t { border-color: var(--sidebar-border); }
+.workspace-sidebar .sidebar-link { color: var(--sidebar-muted); }
+.workspace-sidebar .sidebar-link:hover,
+.workspace-sidebar a:hover { background: var(--sidebar-hover); color: var(--sidebar-foreground); }
+.workspace-sidebar .sidebar-link-active,
+.workspace-sidebar .sidebar-link-active:hover { background: var(--sidebar-active); color: #153d35; }
+.workspace-sidebar [role="combobox"] { background: var(--sidebar); color: var(--sidebar-foreground); border-color: var(--sidebar-border); }
+.report-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); background: var(--muted); }
+.report-table td { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
+.report-table tbody tr:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+input, textarea { caret-color: var(--primary); }
+:root { scrollbar-color: #b3c5b9 var(--background); scrollbar-width: thin; }

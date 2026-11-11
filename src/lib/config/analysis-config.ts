@@ -1,3 +1,5 @@
+import { i18n } from "@/i18n/core";
+
 /**
  * Централизованные параметры анализа.
  *
@@ -66,23 +68,24 @@ export function defaultHoursConfig(analysis: AnalysisConfig): HoursConfig {
 
 /** Проверка согласованности параметров, возвращает список ошибок. */
 export function validateAnalysisConfig(config: AnalysisConfig): string[] {
+  const { t, m } = i18n();
   const errors: string[] = [];
   const { high, medium } = config.thresholds;
-  if (!(medium > 0 && medium < 100)) errors.push("Порог среднего уровня должен быть в диапазоне 1–99%.");
-  if (!(high > 0 && high <= 100)) errors.push("Порог высокого уровня должен быть в диапазоне 1–100%.");
-  if (!(high > medium)) errors.push("Порог высокого уровня должен быть больше порога среднего.");
-  const positiveInts: [keyof AnalysisConfig, string][] = [
-    ["minStudentsPerTopic", "Минимум учеников на тему"],
-    ["minAnswersPerTopic", "Минимум ответов на тему"],
-    ["minAnswersPerStudent", "Минимум ответов ученика по предмету"],
-    ["minStudentsPerCell", "Минимум учеников в ячейке"],
-    ["minStudentsPerGroup", "Минимум учеников в группе учебника"],
-    ["minCommonQuestions", "Минимум общих заданий"],
-  ];
-  for (const [key, label] of positiveInts) {
+  if (!(medium > 0 && medium < 100)) errors.push(m.settings.errMedium);
+  if (!(high > 0 && high <= 100)) errors.push(m.settings.errHigh);
+  if (!(high > medium)) errors.push(m.settings.errOrder);
+  const positiveInts = [
+    "minStudentsPerTopic",
+    "minAnswersPerTopic",
+    "minAnswersPerStudent",
+    "minStudentsPerCell",
+    "minStudentsPerGroup",
+    "minCommonQuestions",
+  ] as const;
+  for (const key of positiveInts) {
     const value = config[key];
     if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
-      errors.push(`${label}: требуется целое число не меньше 1.`);
+      errors.push(t(m.settings.errInteger, { label: m.settings.configLabels[key] }));
     }
   }
   return errors;

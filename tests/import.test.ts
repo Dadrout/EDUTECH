@@ -15,7 +15,8 @@ import { decodeText, parseCsvText } from "@/lib/data/raw-table";
 import { checkCurriculumCoverage, validateCurriculum } from "@/lib/data/validate-curriculum";
 import { validateResults } from "@/lib/data/validate-results";
 import { EMPTY_FILTERS } from "@/lib/domain/types";
-import { formatCi, formatHours, formatPct, formatPp, plural } from "@/lib/format";
+import { formatCi, formatHours, formatPct, formatPp } from "@/lib/format";
+import { i18n } from "@/i18n/core";
 import { config, findNonFinite } from "./helpers";
 
 const HEADER = "student_id,class_id,grade,subject,topic_id,topic_name,textbook_id,textbook_name,test_id,question_id,is_correct,test_date";
@@ -236,9 +237,10 @@ describe("форматирование для интерфейса", () => {
     expect(formatPct(0.724)).toBe("72,4%");
     expect(formatPp(0.042)).toBe("+4,2 п.п.");
     expect(formatPp(-0.03)).toBe("−3,0 п.п.");
-    expect(plural(1, ["тема", "темы", "тем"])).toBe("тема");
-    expect(plural(3, ["тема", "темы", "тем"])).toBe("темы");
-    expect(plural(11, ["тема", "темы", "тем"])).toBe("тем");
-    expect(plural(25, ["тема", "темы", "тем"])).toBe("тем");
+    const { plural, m } = i18n();
+    expect(plural(m.counts.topics, 1)).toBe("1 тема");
+    expect(plural(m.counts.topics, 3)).toBe("3 темы");
+    expect(plural(m.counts.topics, 11)).toBe("11 тем");
+    expect(plural(m.counts.topics, 25)).toBe("25 тем");
   });
 });

@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n/core";
 import type { AnswerRecord, CurriculumEntry, Dataset, DatasetMeta } from "@/lib/domain/types";
 import { parseCsvText } from "./raw-table";
 import { validateCurriculum } from "./validate-curriculum";
@@ -31,9 +32,9 @@ export function datasetFromDemoCsv(resultsCsv: string, curriculumCsv: string): D
   const results = validateResults(parseCsvText(resultsCsv, "UTF-8"));
   const plan = validateCurriculum(parseCsvText(curriculumCsv, "UTF-8"));
   const problems = [...results.fatal, ...plan.fatal];
-  if (results.errorRows > 0) problems.push(`Ошибок в результатах: ${results.errorRows}`);
-  if (plan.errorRows > 0) problems.push(`Ошибок в учебном плане: ${plan.errorRows}`);
-  if (problems.length > 0) throw new Error(`Демо-данные не прошли проверку: ${problems.join("; ")}`);
+  if (results.errorRows > 0) problems.push(i18n().t(i18n().m.validation.demoResultErrors, { n: results.errorRows }));
+  if (plan.errorRows > 0) problems.push(i18n().t(i18n().m.validation.demoPlanErrors, { n: plan.errorRows }));
+  if (problems.length > 0) throw new Error(i18n().t(i18n().m.validation.demoInvalid, { problems: problems.join("; ") }));
   return buildDataset(results.records, plan.entries, {
     name: "Демонстрационный набор (синтетические данные)",
     source: "demo",
@@ -46,6 +47,6 @@ export function datasetFromDemoCsv(resultsCsv: string, curriculumCsv: string): D
 
 export async function fetchDemoDataset(signal?: AbortSignal): Promise<Dataset> {
   const [r, c] = await Promise.all([fetch(DEMO_RESULTS_URL, { signal }), fetch(DEMO_CURRICULUM_URL, { signal })]);
-  if (!r.ok || !c.ok) throw new Error("Не удалось загрузить демонстрационные данные.");
+  if (!r.ok || !c.ok) throw new Error(i18n().m.validation.demoLoadFailed);
   return datasetFromDemoCsv(await r.text(), await c.text());
 }

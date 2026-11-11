@@ -3,33 +3,40 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, CalendarClock, Database, FileText, LayoutDashboard, Library, Menu, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
+import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { SettingsDialog } from "@/components/common/settings-dialog";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useI18n } from "@/i18n/provider";
+import type { Messages } from "@/i18n/messages/ru";
 import { formatInt } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useData } from "@/providers/data-provider";
 
 interface NavItem {
   href: string;
-  label: string;
+  label: keyof Messages["nav"];
   icon: LucideIcon;
 }
 
 const ANALYTICS_NAV: NavItem[] = [
-  { href: "/", label: "Обзор", icon: LayoutDashboard },
-  { href: "/topics", label: "Анализ тем", icon: BookOpenCheck },
-  { href: "/textbooks", label: "Сравнение учебников", icon: Library },
-  { href: "/hours", label: "Учебные часы", icon: CalendarClock },
+  { href: "/", label: "overview", icon: LayoutDashboard },
+  { href: "/topics", label: "topics", icon: BookOpenCheck },
+  { href: "/skills", label: "skills", icon: ScanSearch },
+  { href: "/textbooks", label: "textbooks", icon: Library },
+  { href: "/hours", label: "hours", icon: CalendarClock },
+  { href: "/simulator", label: "simulator", icon: SlidersVertical },
+  { href: "/reports", label: "reports", icon: FileChartColumn },
 ];
 
 const DATA_NAV: NavItem[] = [
-  { href: "/data", label: "Данные и импорт", icon: Database },
-  { href: "/methodology", label: "Методика расчётов", icon: FileText },
+  { href: "/data", label: "import", icon: Database },
+  { href: "/methodology", label: "methodology", icon: FileText },
 ];
 
 function Logo() {
+  const { m } = useI18n();
   return (
     <Link href="/" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30">
       {/* Столбцы и линия порога: тема либо дотягивает до нормы, либо нет. */}
@@ -40,8 +47,8 @@ function Logo() {
         <path d="M1 9.25h18" className="stroke-foreground" strokeWidth="1.25" />
       </svg>
       <span className="leading-tight">
-        <span className="block text-[13px] font-semibold tracking-tight">Data-Driven Curriculum</span>
-        <span className="block text-[11px] text-muted-foreground">Аналитика для методистов</span>
+        <span className="block text-lg font-semibold tracking-[-0.025em]">{m.common.appName}</span>
+        <span className="block text-[11px] text-muted-foreground">{m.common.appTagline}</span>
       </span>
     </Link>
   );
@@ -49,6 +56,7 @@ function Logo() {
 
 function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
   const pathname = usePathname();
+  const { m } = useI18n();
   return (
     <ul className="grid gap-0.5">
       {items.map((item) => {
@@ -60,12 +68,12 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
               onClick={onNavigate}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/30",
-                active ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                "sidebar-link flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/30",
+                active ? "sidebar-link-active" : "",
               )}
             >
-              <item.icon className={cn("size-4", active ? "text-primary" : "")} aria-hidden />
-              {item.label}
+              <item.icon className="size-4 shrink-0" strokeWidth={1.7} aria-hidden />
+              {m.nav[item.label]}
             </Link>
           </li>
         );
@@ -76,38 +84,41 @@ function NavLinks({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => 
 
 function DatasetStatus() {
   const { dataset, status } = useData();
+  const { m } = useI18n();
   if (!dataset) {
-    return <div className="px-2.5 py-2 text-xs text-muted-foreground">{status === "error" ? "Данные не загружены" : "Загрузка данных…"}</div>;
+    return <div className="px-2.5 py-2 text-xs text-muted-foreground">{status === "error" ? m.shell.dataNotLoaded : m.common.loading}</div>;
   }
   return <DatasetStatusCard dataset={dataset} />;
 }
 
 function DatasetStatusCard({ dataset }: { dataset: NonNullable<ReturnType<typeof useData>["dataset"]> }) {
   const students = React.useMemo(() => new Set(dataset.records.map((r) => r.studentId)).size, [dataset.records]);
+  const { m, t, plural } = useI18n();
   return (
     <Link href="/data" className="block rounded-md px-2.5 py-2 text-xs outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30">
       <div className="flex items-center gap-1.5 font-medium">
         <span className={cn("size-1.5 rounded-full", dataset.meta.isSynthetic ? "bg-level-medium" : "bg-level-high")} aria-hidden />
-        {dataset.meta.isSynthetic ? "Демо: синтетические данные" : "Загруженные данные"}
+        {dataset.meta.isSynthetic ? m.shell.demoData : m.shell.uploadedData}
       </div>
       <div className="mt-1 text-muted-foreground tabular">
-        {formatInt(students)} уч. · {formatInt(dataset.records.length)} ответов
+        {t(m.shell.datasetSummary, { students: formatInt(students), answers: plural(m.counts.answers, dataset.records.length) })}
       </div>
     </Link>
   );
 }
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { m } = useI18n();
   return (
-    <div className="flex h-full flex-col gap-6 p-4">
+    <div className="workspace-sidebar flex h-full flex-col gap-8 overflow-y-auto px-4 pt-6 pb-4">
       <Logo />
-      <nav aria-label="Основная навигация" className="grid gap-5">
+      <nav aria-label={m.nav.main} className="grid gap-5">
         <div>
-          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">Аналитика</div>
+          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{m.nav.analytics}</div>
           <NavLinks items={ANALYTICS_NAV} onNavigate={onNavigate} />
         </div>
         <div>
-          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">Данные</div>
+          <div className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">{m.nav.data}</div>
           <NavLinks items={DATA_NAV} onNavigate={onNavigate} />
         </div>
       </nav>
@@ -116,13 +127,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           trigger={
             <button
               type="button"
-              className="flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-[13px] font-medium text-muted-foreground outline-none hover:bg-secondary hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/30"
+              className="sidebar-link flex min-h-10 items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30"
             >
               <SlidersHorizontal className="size-4" aria-hidden />
-              Параметры анализа
+              {m.settings.title}
             </button>
           }
         />
+        <LanguageSwitcher />
         <DatasetStatus />
       </div>
     </div>
@@ -131,8 +143,10 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const { m } = useI18n();
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
+    <div className="app-workspace min-h-dvh lg:grid lg:grid-cols-[232px_minmax(0,1fr)]">
+      <a href="#main-content" className="sr-only z-50 rounded-md bg-primary px-4 py-3 text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2">{m.nav.skipToContent}</a>
       <aside className="sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar lg:block">
         <SidebarContent />
       </aside>
@@ -141,17 +155,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Открыть меню">
+              <Button variant="ghost" size="icon" aria-label={m.nav.openMenu}>
                 <Menu />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-72 bg-sidebar p-0">
-              <SheetTitle className="sr-only">Навигация</SheetTitle>
+              <SheetTitle className="sr-only">{m.nav.navigation}</SheetTitle>
               <SidebarContent onNavigate={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
         </header>
-        <main className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[1480px] px-4 py-6 outline-none sm:px-6 lg:px-9 lg:py-9">{children}</main>
       </div>
     </div>
   );

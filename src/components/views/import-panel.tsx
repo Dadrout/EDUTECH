@@ -12,7 +12,8 @@ import { readTableFromFile, TableReadError, type RawTable } from "@/lib/data/raw
 import type { ColumnMapping } from "@/lib/data/schema";
 import { checkCurriculumCoverage, validateCurriculum, type CurriculumValidation } from "@/lib/data/validate-curriculum";
 import { validateResults, type ResultsValidation } from "@/lib/data/validate-results";
-import { countLabel, formatDate, formatInt } from "@/lib/format";
+import { formatDate, formatInt, quote } from "@/lib/format";
+import { useI18n } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
 
@@ -27,6 +28,7 @@ function Dropzone({ onFile, busy, kind }: { onFile: (file: File) => void; busy: 
   const [over, setOver] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const id = `file-${kind}`;
+  const { m } = useI18n();
   return (
     <div
       onDragOver={(e) => {
@@ -48,8 +50,8 @@ function Dropzone({ onFile, busy, kind }: { onFile: (file: File) => void; busy: 
       <div className="flex size-10 items-center justify-center rounded-full bg-card text-muted-foreground">
         {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <FileUp className="size-5" aria-hidden />}
       </div>
-      <div className="text-sm font-medium">{kind === "results" ? "Перетащите файл с результатами тестирования" : "Перетащите файл учебного плана"}</div>
-      <div className="text-xs text-muted-foreground">CSV (UTF-8 или Windows-1251, разделитель «,» или «;») или XLSX, до 50 МБ</div>
+      <div className="text-sm font-medium">{kind === "results" ? m.import.dropResults : m.import.dropPlan}</div>
+      <div className="text-xs text-muted-foreground">{m.import.formats}</div>
       <input
         ref={inputRef}
         id={id}
@@ -63,27 +65,28 @@ function Dropzone({ onFile, busy, kind }: { onFile: (file: File) => void; busy: 
         }}
       />
       <Button variant="outline" size="sm" className="mt-1" disabled={busy} onClick={() => inputRef.current?.click()}>
-        Выбрать файл
+        {m.import.chooseFile}
       </Button>
     </div>
   );
 }
 
 function MappingList({ mapping }: { mapping: Pick<ColumnMapping<string>, "matched"> }) {
+  const { m, t } = useI18n();
   return (
     <div className="flex flex-wrap gap-1.5">
-      {mapping.matched.map((m) => (
+      {mapping.matched.map((col) => (
         <span
-          key={m.key}
+          key={col.key}
           className={cn(
             "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs",
-            m.header ? "bg-card" : m.required ? "border-level-low/40 bg-level-low-bg text-level-low-fg" : "bg-muted/50 text-muted-foreground",
+            col.header ? "bg-card" : col.required ? "border-level-low/40 bg-level-low-bg text-level-low-fg" : "bg-muted/50 text-muted-foreground",
           )}
-          title={m.header ? `Колонка файла: «${m.header}»` : m.required ? "Обязательная колонка не найдена" : "Необязательная колонка не найдена"}
+          title={col.header ? t(m.import.fileColumn, { header: quote(col.header) }) : col.required ? m.import.requiredMissing : m.import.optionalMissing}
         >
-          {m.header ? <CheckCircle2 className="size-3 text-level-high" aria-hidden /> : m.required ? <X className="size-3" aria-hidden /> : null}
-          <span className="font-mono">{m.name}</span>
-          {m.header && m.header.toLowerCase() !== m.name ? <span className="text-muted-foreground">← {m.header}</span> : null}
+          {col.header ? <CheckCircle2 className="size-3 text-level-high" aria-hidden /> : col.required ? <X className="size-3" aria-hidden /> : null}
+          <span className="font-mono">{col.name}</span>
+          {col.header && col.header.toLowerCase() !== col.name ? <span className="text-muted-foreground">← {col.header}</span> : null}
         </span>
       ))}
     </div>
@@ -91,17 +94,20 @@ function MappingList({ mapping }: { mapping: Pick<ColumnMapping<string>, "matche
 }
 
 function IssueList({ issues }: { issues: ValidationIssue[] }) {
+  const { m, t, plural } = useI18n();
   if (issues.length === 0) return null;
   return (
     <ul className="divide-y rounded-lg border">
       {issues.map((i) => (
         <li key={i.code} className="flex gap-2.5 px-3 py-2 text-[13px]">
-          {i.severity === "error" ? <AlertOctagon className="mt-0.5 size-4 shrink-0 text-level-low" aria-label="Ошибка" /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-level-medium-fg" aria-label="Предупреждение" />}
+          {i.severity === "error" ? <AlertOctagon className="mt-0.5 size-4 shrink-0 text-level-low" aria-label={m.common.error} /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-level-medium-fg" aria-label={m.common.warning} />}
           <div className="min-w-0">
             <span>{i.message}</span>
             <span className="text-muted-foreground">
               {" "}
-              {i.rows.length > 0 ? `${countLabel(i.count, ["строка", "строки", "строк"])}; например: ${i.rows.join(", ")}${i.count > i.rows.length ? "…" : ""}` : ""}
+              {i.rows.length > 0
+                ? t(m.import.rowsExample, { rows: plural(m.counts.rows, i.count), list: `${i.rows.join(m.common.listSep)}${i.count > i.rows.length ? "…" : ""}` })
+                : ""}
             </span>
           </div>
         </li>
@@ -111,12 +117,13 @@ function IssueList({ issues }: { issues: ValidationIssue[] }) {
 }
 
 function PreviewTable({ preview }: { preview: TablePreview }) {
+  const { m } = useI18n();
   return (
     <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-xs">
         <thead className="bg-muted/60 text-muted-foreground">
           <tr>
-            <th className="px-2.5 py-2 text-left font-medium">Строка</th>
+            <th className="px-2.5 py-2 text-left font-medium">{m.import.colRow}</th>
             {preview.headers.map((h) => (
               <th key={h} className="px-2.5 py-2 text-left font-mono font-medium whitespace-nowrap">
                 {h}
@@ -130,7 +137,7 @@ function PreviewTable({ preview }: { preview: TablePreview }) {
               <td className={cn("px-2.5 py-1.5 text-muted-foreground tabular", r.hasError && "font-semibold text-level-low-fg")}>{r.rowNumber}</td>
               {r.cells.map((c, i) => (
                 <td key={i} className="max-w-56 truncate px-2.5 py-1.5 whitespace-nowrap" title={c}>
-                  {c === "" ? <span className="text-level-low-fg">пусто</span> : c}
+                  {c === "" ? <span className="text-level-low-fg">{m.import.empty}</span> : c}
                 </td>
               ))}
             </tr>
@@ -155,6 +162,7 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
   const [loaded, setLoaded] = React.useState<Loaded | null>(null);
   const [readError, setReadError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const { m, t, plural } = useI18n();
 
   const results: ResultsValidation | null = React.useMemo(() => (loaded && kind === "results" ? validateResults(loaded.table) : null), [loaded, kind]);
   const plan: CurriculumValidation | null = React.useMemo(() => (loaded && kind === "curriculum" ? validateCurriculum(loaded.table) : null), [loaded, kind]);
@@ -168,7 +176,7 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
       const table = await readTableFromFile(file);
       setLoaded({ file, table });
     } catch (e) {
-      setReadError(e instanceof TableReadError ? e.message : "Не удалось прочитать файл.");
+      setReadError(e instanceof TableReadError ? e.message : m.import.readFailed);
     } finally {
       setBusy(false);
     }
@@ -197,8 +205,11 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
           removedDuplicates: results.duplicateRows,
         }),
       );
-      toast.success("Результаты тестирования загружены", {
-        description: `${formatInt(results.records.length)} ответов, ${formatInt(results.summary.students)} учеников.${dataset.meta.isSynthetic ? " Учебный план демо-набора очищен — загрузите свой." : ""}`,
+      toast.success(m.import.resultsLoaded, {
+        description: `${t(m.import.resultsLoadedText, {
+          answers: plural(m.counts.answers, results.records.length),
+          students: plural(m.counts.students, results.summary.students),
+        })}${dataset.meta.isSynthetic ? m.import.demoPlanCleared : ""}`,
       });
     } else if (plan) {
       ok = await replaceDataset({
@@ -206,10 +217,10 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
         curriculum: plan.entries,
         meta: { ...dataset.meta, curriculumFileName: loaded.file.name, excludedCurriculumRows: plan.errorRows, loadedAt: new Date().toISOString() },
       });
-      toast.success("Учебный план загружен", { description: `${countLabel(plan.entries.length, ["тема", "темы", "тем"])}.` });
+      toast.success(m.import.planLoaded, { description: t(m.common.sentence, { text: plural(m.counts.topics, plan.entries.length) }) });
     }
     if (!ok) {
-      toast.warning("Данные применены, но не сохранены в браузере", { description: "После перезагрузки страницы потребуется загрузить файл снова." });
+      toast.warning(m.import.notSaved, { description: m.import.notSavedText });
     }
     reset();
     onApplied?.();
@@ -227,7 +238,7 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
       {readError ? (
         <Alert variant="destructive">
           <AlertOctagon aria-hidden />
-          <AlertTitle>Файл не прочитан</AlertTitle>
+          <AlertTitle>{m.import.readErrorTitle}</AlertTitle>
           <AlertDescription>
             <p>{readError}</p>
           </AlertDescription>
@@ -240,51 +251,51 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold">{loaded.file.name}</div>
               <div className="text-xs text-muted-foreground">
-                {formatInt(loaded.table.rows.length)} строк данных · {loaded.table.encoding ?? "—"}
-                {loaded.table.delimiter ? ` · разделитель «${loaded.table.delimiter === "\t" ? "табуляция" : loaded.table.delimiter}»` : ""}
+                {t(m.import.fileInfo, { rows: formatInt(loaded.table.rows.length), encoding: loaded.table.encoding ?? "—" })}
+                {loaded.table.delimiter ? t(m.import.delimiter, { delimiter: loaded.table.delimiter === "\t" ? m.import.tab : loaded.table.delimiter }) : ""}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={reset}>
               <X aria-hidden />
-              Выбрать другой файл
+              {m.import.otherFile}
             </Button>
           </div>
 
           <div>
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Распознанные колонки</div>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">{m.import.mappedColumns}</div>
             <MappingList mapping={v.mapping} />
           </div>
 
           {fatal.length > 0 ? (
             <Alert variant="destructive">
               <AlertOctagon aria-hidden />
-              <AlertTitle>Импорт невозможен</AlertTitle>
+              <AlertTitle>{m.import.fatalTitle}</AlertTitle>
               <AlertDescription>
                 {fatal.map((f) => (
                   <p key={f}>{f}</p>
                 ))}
-                <p>Проверьте заголовки колонок или скачайте шаблон ниже.</p>
+                <p>{m.import.fatalHint}</p>
               </AlertDescription>
             </Alert>
           ) : (
             <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-4">
-              <Stat label="Строк в файле" value={formatInt(v.totalRows)} />
-              <Stat label="Корректных записей" value={formatInt(validCount)} tone="high" />
-              <Stat label="Строк с ошибками" value={formatInt(errorRows)} tone={errorRows > 0 ? "low" : undefined} />
-              <Stat label="Дубликатов удалено" value={formatInt(v.duplicateRows)} tone={v.duplicateRows > 0 ? "medium" : undefined} />
+              <Stat label={m.import.statRows} value={formatInt(v.totalRows)} />
+              <Stat label={m.import.statValid} value={formatInt(validCount)} tone="high" />
+              <Stat label={m.import.statErrors} value={formatInt(errorRows)} tone={errorRows > 0 ? "low" : undefined} />
+              <Stat label={m.import.statDuplicates} value={formatInt(v.duplicateRows)} tone={v.duplicateRows > 0 ? "medium" : undefined} />
             </div>
           )}
 
           {results && fatal.length === 0 ? (
             <div className="flex flex-wrap gap-1.5 text-xs">
               {[
-                countLabel(results.summary.students, ["ученик", "ученика", "учеников"]),
-                countLabel(results.summary.classes, ["класс", "класса", "классов"]),
-                countLabel(results.summary.subjects, ["предмет", "предмета", "предметов"]),
-                countLabel(results.summary.topics, ["тема", "темы", "тем"]),
-                countLabel(results.summary.textbooks, ["учебник", "учебника", "учебников"]),
-                countLabel(results.summary.tests, ["тест", "теста", "тестов"]),
-                results.summary.dateFrom ? `${formatDate(results.summary.dateFrom)} — ${formatDate(results.summary.dateTo)}` : null,
+                plural(m.counts.students, results.summary.students),
+                plural(m.counts.classes, results.summary.classes),
+                plural(m.counts.subjects, results.summary.subjects),
+                plural(m.counts.topics, results.summary.topics),
+                plural(m.counts.textbooks, results.summary.textbooks),
+                plural(m.counts.tests, results.summary.tests),
+                results.summary.dateFrom ? t(m.units.dateRange, { from: formatDate(results.summary.dateFrom), to: formatDate(results.summary.dateTo) }) : null,
               ]
                 .filter(Boolean)
                 .map((t) => (
@@ -300,27 +311,33 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
           {coverage && (coverage.planWithoutResults.length > 0 || coverage.resultsWithoutPlan.length > 0 || coverage.coursesWithoutPlan.length > 0) ? (
             <Alert variant="warning">
               <AlertTriangle aria-hidden />
-              <AlertTitle>Сверка с результатами тестирования</AlertTitle>
+              <AlertTitle>{m.import.coverageTitle}</AlertTitle>
               <AlertDescription>
                 {coverage.planWithoutResults.length > 0 ? (
                   <p>
-                    {countLabel(coverage.planWithoutResults.length, ["тема", "темы", "тем"])} плана без результатов тестирования ({coverage.planWithoutResults.slice(0, 4).map((e) => e.topicId).join(", ")}
-                    {coverage.planWithoutResults.length > 4 ? "…" : ""}) — их часы не будут меняться.
+                    {t(m.import.planWithoutResults, {
+                      topics: plural(m.counts.topics, coverage.planWithoutResults.length),
+                      list: `${coverage.planWithoutResults.slice(0, 4).map((e) => e.topicId).join(m.common.listSep)}${coverage.planWithoutResults.length > 4 ? "…" : ""}`,
+                    })}
                   </p>
                 ) : null}
                 {coverage.resultsWithoutPlan.length > 0 ? (
                   <p>
-                    {countLabel(coverage.resultsWithoutPlan.length, ["тема", "темы", "тем"])} с результатами отсутствуют в плане ({coverage.resultsWithoutPlan.slice(0, 4).map((t) => t.topicId).join(", ")}
-                    {coverage.resultsWithoutPlan.length > 4 ? "…" : ""}).
+                    {t(m.import.resultsWithoutPlan, {
+                      topics: plural(m.counts.topics, coverage.resultsWithoutPlan.length),
+                      list: `${coverage.resultsWithoutPlan.slice(0, 4).map((x) => x.topicId).join(m.common.listSep)}${coverage.resultsWithoutPlan.length > 4 ? "…" : ""}`,
+                    })}
                   </p>
                 ) : null}
-                {coverage.coursesWithoutPlan.length > 0 ? <p>Нет плана для: {coverage.coursesWithoutPlan.map((c) => `${c.subject}, ${c.grade} кл.`).join("; ")}.</p> : null}
+                {coverage.coursesWithoutPlan.length > 0 ? (
+                  <p>{t(m.data.noPlanFor, { courses: coverage.coursesWithoutPlan.map((c) => t(m.units.courseShort, { subject: c.subject, grade: c.grade })).join("; ") })}</p>
+                ) : null}
               </AlertDescription>
             </Alert>
           ) : null}
 
           <div>
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Предпросмотр: первые строки файла и строки с ошибками (выделены)</div>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">{m.import.previewTitle}</div>
             <PreviewTable preview={v.preview} />
           </div>
 
@@ -328,19 +345,21 @@ export function ImportPanel({ kind, onApplied }: { kind: Kind; onApplied?: () =>
             <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 {validCount === 0
-                  ? "В файле нет ни одной корректной записи — импорт невозможен."
+                  ? m.import.noValid
                   : errorRows > 0
-                    ? `${countLabel(errorRows, ["строка", "строки", "строк"])} с ошибками не попадут в расчёты. Исправьте файл или подтвердите импорт только корректных записей.`
+                    ? t(m.import.withErrors, { rows: plural(m.counts.rows, errorRows) })
                     : results
-                      ? `Данные заменят текущий набор${dataset.meta.isSynthetic ? " (демо-набор и его учебный план)" : ""} на всех страницах.`
-                      : "План заменит текущий учебный план для всех предметов и параллелей."}
+                      ? dataset.meta.isSynthetic
+                        ? m.import.replaceResultsDemo
+                        : m.import.replaceResults
+                      : m.import.replacePlan}
               </p>
               <div className="flex shrink-0 gap-2">
                 <Button variant="outline" onClick={reset}>
-                  Отмена
+                  {m.common.cancel}
                 </Button>
                 <Button onClick={() => void apply()} disabled={validCount === 0} variant={errorRows > 0 ? "secondary" : "default"}>
-                  {errorRows > 0 ? `Импортировать ${formatInt(validCount)} корректных` : "Применить данные"}
+                  {errorRows > 0 ? t(m.import.importValid, { n: formatInt(validCount) }) : m.import.applyData}
                 </Button>
               </div>
             </div>

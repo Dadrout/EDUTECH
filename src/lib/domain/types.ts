@@ -22,6 +22,17 @@ export interface AnswerRecord {
   isCorrect: boolean;
   /** Дата в формате ISO YYYY-MM-DD. */
   testDate: string;
+  /**
+   * Проверяемый заданием навык (необязательная колонка skill), например
+   * «Приведение к общему знаменателю». null/undefined — навык не указан.
+   */
+  skill?: string | null;
+  /**
+   * Категория ошибки для неверного ответа (необязательная колонка error_type).
+   * Известные коды — ERROR_TYPES в lib/analytics/skills.ts; иначе — текст из файла.
+   * Для верных ответов не используется.
+   */
+  errorType?: string | null;
 }
 
 /** Строка учебного плана: часы на тему в рамках предмета и параллели. */

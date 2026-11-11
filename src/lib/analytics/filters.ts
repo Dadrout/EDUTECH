@@ -1,5 +1,6 @@
 import type { AnswerRecord, DataFilters } from "@/lib/domain/types";
 import { makeTopicKey, topicKeyOf } from "@/lib/domain/types";
+import { i18n } from "@/i18n/core";
 
 export const naturalCompare = (a: string, b: string): number =>
   a.localeCompare(b, "ru", { numeric: true, sensitivity: "base" });
@@ -50,6 +51,7 @@ export interface FilterOptions {
  * классы/учебники/темы — от предмета и параллели.
  */
 export function getFilterOptions(records: AnswerRecord[], filters: DataFilters): FilterOptions {
+  const { t, m } = i18n();
   const subjects = new Set<string>();
   const grades = new Set<number>();
   const classes = new Map<string, number>();
@@ -74,7 +76,7 @@ export function getFilterOptions(records: AnswerRecord[], filters: DataFilters):
 
   return {
     subjects: [...subjects].sort(naturalCompare).map((s) => ({ value: s, label: s })),
-    grades: [...grades].sort((a, b) => a - b).map((g) => ({ value: g, label: `${g} класс` })),
+    grades: [...grades].sort((a, b) => a - b).map((g) => ({ value: g, label: t(m.units.grade, { grade: g }) })),
     classes: [...classes.entries()]
       .sort((a, b) => naturalCompare(a[0], b[0]))
       .map(([id]) => ({ value: id, label: id })),
@@ -83,10 +85,10 @@ export function getFilterOptions(records: AnswerRecord[], filters: DataFilters):
       .map(([id, name]) => ({ value: id, label: name })),
     topics: [...topics.entries()]
       .sort((a, b) => compareTopics(a[1], b[1]))
-      .map(([key, t]) => ({
+      .map(([key, tp]) => ({
         value: key,
-        label: t.name,
-        hint: [multiSubject ? t.subject : null, multiGrade ? `${t.grade} кл.` : null].filter(Boolean).join(" · ") || undefined,
+        label: tp.name,
+        hint: [multiSubject ? tp.subject : null, multiGrade ? t(m.units.gradeShort, { grade: tp.grade }) : null].filter(Boolean).join(" · ") || undefined,
       })),
   };
 }

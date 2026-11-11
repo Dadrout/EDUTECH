@@ -1,51 +1,52 @@
 import { AlertOctagon, AlertTriangle, CheckCircle2, CircleDashed, CircleHelp, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { i18n } from "@/i18n/core";
 import type { MasteryThresholds } from "@/lib/config/analysis-config";
 import type { DifficultyStatus, MasteryLevel } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 
 type Variant = "high" | "medium" | "low" | "none";
 
-export const LEVEL_META: Record<MasteryLevel, { label: string; variant: Variant; color: string; Icon: LucideIcon }> = {
-  high: { label: "Высокий", variant: "high", color: "var(--level-high)", Icon: CheckCircle2 },
-  medium: { label: "Средний", variant: "medium", color: "var(--level-medium)", Icon: AlertTriangle },
-  low: { label: "Низкий", variant: "low", color: "var(--level-low)", Icon: AlertOctagon },
-  insufficient: { label: "Мало данных", variant: "none", color: "var(--level-none)", Icon: CircleHelp },
+// Подписи — геттеры: они читают словарь текущего языка в момент отрисовки.
+export const LEVEL_META: Record<MasteryLevel, { readonly label: string; variant: Variant; color: string; Icon: LucideIcon }> = {
+  high: { get label() { return i18n().m.levels.high; }, variant: "high", color: "var(--level-high)", Icon: CheckCircle2 },
+  medium: { get label() { return i18n().m.levels.medium; }, variant: "medium", color: "var(--level-medium)", Icon: AlertTriangle },
+  low: { get label() { return i18n().m.levels.low; }, variant: "low", color: "var(--level-low)", Icon: AlertOctagon },
+  insufficient: { get label() { return i18n().m.levels.insufficient; }, variant: "none", color: "var(--level-none)", Icon: CircleHelp },
 };
 
-export const STATUS_META: Record<DifficultyStatus, { label: string; variant: Variant; Icon: LucideIcon; hint: string }> = {
-  difficult: {
-    label: "Сложная тема",
-    variant: "low",
-    Icon: AlertOctagon,
-    hint: "Успешность ниже порога среднего уровня, и даже верхняя граница 95% интервала ниже порога — вывод надёжен.",
-  },
-  likely_difficult: {
-    label: "Вероятно сложная",
-    variant: "low",
-    Icon: CircleDashed,
-    hint: "Успешность ниже порога, но доверительный интервал его пересекает — нужны дополнительные данные для уверенного вывода.",
-  },
-  attention: { label: "Требует внимания", variant: "medium", Icon: AlertTriangle, hint: "Средний уровень освоения." },
-  mastered: { label: "Усваивается хорошо", variant: "high", Icon: CheckCircle2, hint: "Высокий уровень освоения." },
-  insufficient: {
-    label: "Недостаточно данных",
-    variant: "none",
-    Icon: CircleHelp,
-    hint: "Слишком мало учеников или ответов, чтобы делать вывод о сложности темы.",
-  },
+function statusMeta(status: DifficultyStatus, variant: Variant, Icon: LucideIcon) {
+  return {
+    get label() {
+      return i18n().m.status[status];
+    },
+    get hint() {
+      return i18n().m.status.hints[status];
+    },
+    variant,
+    Icon,
+  };
+}
+
+export const STATUS_META: Record<DifficultyStatus, { readonly label: string; variant: Variant; Icon: LucideIcon; readonly hint: string }> = {
+  difficult: statusMeta("difficult", "low", AlertOctagon),
+  likely_difficult: statusMeta("likely_difficult", "low", CircleDashed),
+  attention: statusMeta("attention", "medium", AlertTriangle),
+  mastered: statusMeta("mastered", "high", CheckCircle2),
+  insufficient: statusMeta("insufficient", "none", CircleHelp),
 };
 
-export function levelRangeLabel(level: MasteryLevel, t: MasteryThresholds): string {
+export function levelRangeLabel(level: MasteryLevel, th: MasteryThresholds): string {
+  const { t, m } = i18n();
   switch (level) {
     case "high":
-      return `${t.high}–100%`;
+      return t(m.units.percent, { n: `${th.high}–100` });
     case "medium":
-      return `${t.medium}–${t.high - 1}%`;
+      return t(m.units.percent, { n: `${th.medium}–${th.high - 1}` });
     case "low":
-      return `< ${t.medium}%`;
+      return `< ${t(m.units.percent, { n: th.medium })}`;
     default:
-      return "мало данных";
+      return m.levels.rangeInsufficient;
   }
 }
 

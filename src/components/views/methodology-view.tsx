@@ -3,7 +3,10 @@
 import * as React from "react";
 import { PageHeader } from "@/components/common/blocks";
 import { SettingsDialog } from "@/components/common/settings-dialog";
+import { useI18n } from "@/i18n/provider";
+import { Rich } from "@/i18n/rich";
 import { defaultHoursConfig } from "@/lib/config/analysis-config";
+import { formatPercentValue } from "@/lib/format";
 import { useData } from "@/providers/data-provider";
 
 function Block({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
@@ -19,172 +22,125 @@ function Formula({ children }: { children: React.ReactNode }) {
   return <div className="rounded-lg border bg-muted/40 px-4 py-2.5 font-mono text-[13px] text-foreground">{children}</div>;
 }
 
-const TOC = [
-  ["data", "Данные"],
-  ["rate", "Успешность и интервалы"],
-  ["levels", "Уровни и сложность тем"],
-  ["textbooks", "Сравнение учебников"],
-  ["hours", "Учебные часы"],
-  ["limits", "Ограничения MVP"],
-] as const;
+const TOC = ["data", "rate", "levels", "textbooks", "hours", "limits"] as const;
 
 export function MethodologyView() {
   const { config } = useData();
+  const { m, t } = useI18n();
+  const mm = m.methodology;
   const h = defaultHoursConfig(config);
-  const t = config.thresholds;
+  const pct = (v: number) => formatPercentValue(v);
+  const th = { high: pct(config.thresholds.high), medium: pct(config.thresholds.medium) };
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <PageHeader
-        title="Методика расчётов"
-        description="Все выводы платформы получены воспроизводимыми формулами из загруженных данных — без генеративных моделей и случайных значений. Ниже — что именно и как рассчитывается."
-        actions={<SettingsDialog />}
-      />
+      <PageHeader title={mm.title} description={mm.description} actions={<SettingsDialog />} />
 
-      <nav aria-label="Содержание" className="-mx-2 flex flex-wrap gap-x-1 gap-y-0.5">
-        {TOC.map(([id, label]) => (
-          <a key={id} href={`#${id}`} className="rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/30">
-            {label}
+      <nav aria-label={mm.toc} className="-mx-2 flex flex-wrap gap-x-1 gap-y-0.5">
+        {TOC.map((id) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground underline-offset-4 outline-none hover:text-foreground hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/30"
+          >
+            {mm.tocItems[id]}
           </a>
         ))}
       </nav>
 
-      <Block id="data" title="1. Данные и единица анализа">
+      <Block id="data" title={mm.dataTitle}>
         <p>
-          Единица исходных данных — <b>один ответ ученика на одно задание теста</b> (верно / неверно). Каждое задание относится к одной теме учебной программы, ученик — к классу и параллели, а класс — к учебнику по предмету.
+          <Rich text={mm.data1} />
         </p>
         <p>
-          Тема определяется сочетанием <b>предмет + параллель + код темы</b>, задание — сочетанием <b>код теста + код задания</b>. Все страницы используют один и тот же набор данных и общие фильтры.
+          <Rich text={mm.data2} />
         </p>
-        <p>
-          При импорте проверяются обязательные колонки, типы значений, пустые ячейки, точные и противоречивые дубликаты, согласованность класса и параллели, задания и темы. Строки с ошибками не попадают в расчёты незаметно:
-          методист либо исправляет файл, либо явно подтверждает импорт только корректных строк.
-        </p>
+        <p>{mm.data3}</p>
       </Block>
 
-      <Block id="rate" title="2. Успешность и доверительные интервалы">
+      <Block id="rate" title={mm.rateTitle}>
         <p>
-          <b>Успешность</b> группы (темы, класса, учебника) — доля правильных ответов:
+          <Rich text={mm.rate1} />
         </p>
-        <Formula>успешность = верные ответы / все ответы</Formula>
+        <Formula>{mm.rateFormula}</Formula>
+        <p>{mm.rate2}</p>
         <p>
-          Если ответов нет, значение не рассчитывается и в интерфейсе показывается «—» (деление на ноль исключено).
-        </p>
-        <p>
-          <b>95% доверительный интервал</b> показывает точность оценки. Ответы одного ученика связаны между собой, поэтому стандартная ошибка считается по ученикам (кластерная оценка доли):
+          <Rich text={mm.rate3} />
         </p>
         <Formula>Var(p) ≈ Σ (cⱼ − p·nⱼ)² / (k·(k − 1)·n̄²)</Formula>
-        <p>
-          где cⱼ и nⱼ — верные и все ответы ученика j, k — число учеников, n̄ — среднее число ответов на ученика. Интервал: p ± 1,96·√Var. Чтобы не получить ложной точности, он не может быть уже интервала
-          Уилсона для той же доли. Для одного ученика интервал не строится.
-        </p>
+        <p>{mm.rate4}</p>
       </Block>
 
-      <Block id="levels" title="3. Уровни освоения и сложные темы">
-        <p>
-          Текущие пороги (начальная настройка MVP, не образовательный стандарт; меняются в «Параметрах анализа»):
-        </p>
+      <Block id="levels" title={mm.levelsTitle}>
+        <p>{mm.levels1}</p>
         <ul>
           <li>
-            <b>Высокий уровень</b> — от {t.high}% правильных ответов;
+            <Rich text={t(mm.levelHigh, th)} />
           </li>
           <li>
-            <b>Средний уровень</b> — от {t.medium}% до {t.high}%;
+            <Rich text={t(mm.levelMedium, th)} />
           </li>
           <li>
-            <b>Низкий уровень</b> — ниже {t.medium}%.
+            <Rich text={t(mm.levelLow, th)} />
           </li>
         </ul>
         <p>
-          <b>Статус сложности</b> учитывает надёжность вывода: «Сложная тема» — успешность ниже {t.medium}%, и верхняя граница доверительного интервала тоже ниже порога; «Вероятно сложная» — точечная оценка ниже порога, но интервал его
-          пересекает. Проблемными считаются обе категории.
+          <Rich text={t(mm.levels2, th)} />
         </p>
         <p>
-          Вывод о сложности делается только при достаточной выборке: не менее <b>{config.minStudentsPerTopic} учеников</b> и <b>{config.minAnswersPerTopic} ответов</b> по теме. Иначе тема помечается «Недостаточно данных».
-          В тепловой карте «класс × тема» ячейки с числом учеников меньше {config.minStudentsPerCell} заштрихованы. Отставание класса от параллели на 15+ п.п. попадает в список выявленных проблем.
+          <Rich text={t(mm.levels3, { students: config.minStudentsPerTopic, answers: config.minAnswersPerTopic, cell: config.minStudentsPerCell })} />
         </p>
       </Block>
 
-      <Block id="textbooks" title="4. Сравнение учебников">
-        <p>Более высокий средний результат не означает, что учебник эффективнее. Поэтому сравнение строится по правилам, уменьшающим влияние посторонних факторов:</p>
+      <Block id="textbooks" title={mm.textbooksTitle}>
+        <p>{mm.textbooks1}</p>
         <ol>
-          <li>
-            Сравниваются только ученики <b>одного предмета и одной параллели</b>.
-          </li>
-          <li>
-            По каждой теме используются только <b>общие задания</b>, которые выполняли ученики всех выбранных учебников. Если общих заданий меньше {config.minCommonQuestions} — тема несопоставима и исключается.
-          </li>
-          <li>
-            Тема исключается, если у одного из учебников нет результатов или меньше {config.minStudentsPerGroup} учеников на общих заданиях.
-          </li>
-          <li>Итоговая оценка — доля верных ответов на общих заданиях всех сопоставимых тем; разница с базовым учебником сопровождается 95% интервалом.</li>
-          <li>Отмечается, если группы писали тест с разницей более 30 дней.</li>
+          {mm.textbooksRules.map((rule) => (
+            <li key={rule}>
+              <Rich text={t(rule, { questions: config.minCommonQuestions, students: config.minStudentsPerGroup })} />
+            </li>
+          ))}
         </ol>
-        <p>Вывод формулируется по уровням доказательности:</p>
+        <p>{mm.textbooks2}</p>
         <ul>
-          <li>
-            <b>Недостаточно данных</b> — нет сопоставимых тем или мало учеников;
-          </li>
-          <li>
-            <b>Различие не подтверждено</b> — интервал разницы включает ноль;
-          </li>
-          <li>
-            <b>Предварительный вывод</b> — различие значимо, но учебник используется в одном классе, результаты классов пересекаются или разброс между классами сопоставим с разницей;
-          </li>
-          <li>
-            <b>Различие устойчиво</b> — значимо, каждый учебник используется минимум в двух классах и все классы одного учебника превосходят все классы другого.
-          </li>
+          {mm.textbooksLevels.map((level) => (
+            <li key={level}>
+              <Rich text={level} />
+            </li>
+          ))}
         </ul>
         <p>
-          Даже устойчивое различие — <b>статистическая связь, а не доказательство причины</b>: подготовка учеников, работа учителей и условия тестирования не контролируются. Для обоснованного решения о смене учебника
-          рекомендуется апробация с входной и итоговой диагностикой.
+          <Rich text={mm.textbooks3} />
         </p>
       </Block>
 
-      <Block id="hours" title="5. Рекомендации по распределению учебных часов">
-        <p>
-          Используется прозрачная детерминированная эвристика, а не модель педагогической эффективности. Расчёт ведётся в целых получасах, поэтому сумма часов всегда точно равна бюджету.
-        </p>
+      <Block id="hours" title={mm.hoursTitle}>
+        <p>{mm.hours1}</p>
         <ol>
-          <li>
-            <b>Проверка допустимости.</b> Если сумма минимальных часов больше бюджета, план не строится — показывается конфликт с размером нехватки.
-          </li>
-          <li>
-            <b>База.</b> Текущие часы темы, поднятые до минимума, если они ниже.
-          </li>
-          <li>
-            <b>Приведение к бюджету.</b> Если база больше бюджета, часы по шагу снимаются с тем с наибольшим значением «освоение × доля сохранённых часов», не ниже минимума.
-          </li>
-          <li>
-            <b>Приоритет.</b> Для тем с освоением ниже цели ({h.targetPct}% по умолчанию):
-          </li>
+          {mm.hoursSteps.map((step) => (
+            <li key={step}>
+              <Rich text={t(step, { target: pct(h.targetPct) })} />
+            </li>
+          ))}
         </ol>
-        <Formula>приоритет = (цель − успешность) / цель</Formula>
-        <Formula>потребность = часы × макс. увеличение ({Math.round(h.maxIncreaseShare * 100)}%) × приоритет, округление до шага</Formula>
-        <ol start={5}>
-          <li>
-            <b>Источник часов.</b> Сначала свободный бюджет, затем темы-доноры с освоением не ниже цели: каждая отдаёт не более {Math.round(h.maxDecreaseShare * 100)}% своих часов и не опускается ниже минимума. Первыми
-            отдают темы с наибольшим освоением, получают — темы с наибольшим «приоритет × доля неудовлетворённой потребности».
-          </li>
-          <li>
-            <b>Резерв.</b> Если бюджет больше потребности, остаток не распределяется произвольно и показывается как резерв.
-          </li>
-          <li>
-            <b>Данные.</b> Темы с недостаточной выборкой и темы без результатов тестирования не меняются.
-          </li>
+        <Formula>{mm.priorityFormula}</Formula>
+        <Formula>{t(mm.demandFormula, { increase: pct(Math.round(h.maxIncreaseShare * 100)) })}</Formula>
+        <ol start={mm.hoursSteps.length + 1}>
+          {mm.hoursSteps2.map((step) => (
+            <li key={step}>
+              <Rich text={t(step, { decrease: pct(Math.round(h.maxDecreaseShare * 100)) })} />
+            </li>
+          ))}
         </ol>
-        <p>
-          Пример: тема на 14 ч с успешностью 41% при цели 80% имеет приоритет (80 − 41) / 80 = 0,49 и потребность 14 × 0,5 × 0,49 ≈ 3,4 → 3 ч. Тема на 10 ч с освоением 83% может отдать до 10 × 0,25 = 2,5 → 2 ч.
-        </p>
-        <p>Для каждой темы платформа выводит причину изменения. Рекомендации — предложение для методиста, а не обязательное решение.</p>
+        <p>{mm.hoursExample}</p>
+        <p>{mm.hours2}</p>
       </Block>
 
-      <Block id="limits" title="6. Ограничения текущей версии">
+      <Block id="limits" title={mm.limitsTitle}>
         <ul>
-          <li>Задания оцениваются как верно / неверно; частичные баллы и разная трудность заданий в итоговой успешности не взвешиваются.</li>
-          <li>Сравнение учебников не учитывает исходный уровень подготовки классов (входная диагностика в формат данных пока не входит).</li>
-          <li>Пороги уровней освоения и параметры перераспределения часов — настройки MVP, их следует согласовать с методическим объединением.</li>
-          <li>Данные хранятся в браузере методиста; многопользовательская работа и интеграции с LMS в MVP не реализованы.</li>
+          {mm.limits.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
         </ul>
       </Block>
     </div>

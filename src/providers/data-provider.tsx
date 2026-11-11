@@ -6,6 +6,8 @@ import { DEFAULT_ANALYSIS_CONFIG, validateAnalysisConfig, type AnalysisConfig } 
 import { fetchDemoDataset } from "@/lib/data/dataset";
 import { clearStoredDataset, loadStoredDataset, readLocal, saveDataset, writeLocal } from "@/lib/data/storage";
 import { EMPTY_FILTERS, type DataFilters, type Dataset } from "@/lib/domain/types";
+import { i18n } from "@/i18n/core";
+import { useI18n } from "@/i18n/provider";
 
 type Status = "loading" | "ready" | "error";
 
@@ -83,7 +85,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setStatus("ready");
       } catch (e) {
         if (cancelled || controller.signal.aborted) return;
-        setError(e instanceof Error ? e.message : "Не удалось загрузить данные.");
+        setError(e instanceof Error ? e.message : i18n().m.dataGate.loadFailed);
         setStatus("error");
       }
     })();
@@ -137,7 +139,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const retry = React.useCallback(() => setAttempt((a) => a + 1), []);
 
-  const options = React.useMemo(() => (records ? getFilterOptions(records, filters) : EMPTY_OPTIONS), [records, filters]);
+  // Подписи вариантов («7 класс») зависят от языка.
+  const { locale } = useI18n();
+  const options = React.useMemo(() => (records ? getFilterOptions(records, filters) : EMPTY_OPTIONS), [records, filters, locale]); // eslint-disable-line react-hooks/exhaustive-deps
   const courses = React.useMemo(() => (records ? listCourses(records) : []), [records]);
 
   const value = React.useMemo<DataContextValue>(
@@ -150,13 +154,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
 export function useData(): DataContextValue {
   const ctx = React.useContext(DataContext);
-  if (!ctx) throw new Error("useData должен использоваться внутри DataProvider");
+  if (!ctx) throw new Error("useData must be used inside DataProvider");
   return ctx;
 }
 
 /** Набор данных гарантированно загружен (для компонентов внутри DataGate). */
 export function useReadyData(): DataContextValue & { dataset: Dataset } {
   const ctx = useData();
-  if (!ctx.dataset) throw new Error("Данные ещё не загружены");
+  if (!ctx.dataset) throw new Error("Dataset is not loaded yet");
   return ctx as DataContextValue & { dataset: Dataset };
 }

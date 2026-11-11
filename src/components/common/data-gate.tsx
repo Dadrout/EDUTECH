@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { useData } from "@/providers/data-provider";
 import { EmptyState } from "./blocks";
+import { useI18n } from "@/i18n/provider";
 
 /** Показывает содержимое только когда данные загружены; иначе — загрузку, ошибку или пустое состояние. */
 export function DataGate({ children }: { children: React.ReactNode }) {
   const { status, error, dataset, retry, restoreDemo } = useData();
+  const { m } = useI18n();
 
   if (status === "loading" && !dataset) {
     return (
       <div className="space-y-5" aria-busy="true" aria-live="polite">
-        <span className="sr-only">Загрузка данных…</span>
+        <span className="sr-only">{m.dataGate.loading}</span>
         <Skeleton className="h-8 w-72" />
         <Skeleton className="h-4 w-[28rem] max-w-full" />
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border md:grid-cols-5">
@@ -36,13 +38,13 @@ export function DataGate({ children }: { children: React.ReactNode }) {
       <div className="rounded-xl border bg-card">
         <EmptyState
           icon={AlertTriangle}
-          title="Не удалось загрузить данные"
-          description={error ?? "Попробуйте обновить страницу."}
+          title={m.dataGate.errorTitle}
+          description={error ?? m.dataGate.errorFallback}
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={retry}>Повторить</Button>
+              <Button onClick={retry}>{m.dataGate.retry}</Button>
               <Button variant="outline" onClick={() => void restoreDemo()}>
-                Загрузить демо-данные
+                {m.dataGate.loadDemo}
               </Button>
             </div>
           }
@@ -56,11 +58,11 @@ export function DataGate({ children }: { children: React.ReactNode }) {
       <div className="rounded-xl border bg-card">
         <EmptyState
           icon={Database}
-          title="Нет данных тестирования"
-          description="Загрузите файл с результатами тестирования, чтобы увидеть аналитику."
+          title={m.dataGate.emptyTitle}
+          description={m.dataGate.emptyDescription}
           action={
             <Button asChild>
-              <Link href="/data">Перейти к загрузке данных</Link>
+              <Link href="/data">{m.dataGate.goToImport}</Link>
             </Button>
           }
         />
