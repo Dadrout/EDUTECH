@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { AlertTriangle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AlertTriangle, ScanSearch } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useReadyData } from "@/providers/data-provider";
 import { LEVEL_META, StatusBadge, STATUS_META } from "@/components/common/levels";
 import { RateBar } from "@/components/common/blocks";
 import { Alert, AlertDescription } from "@/components/ui/misc";
@@ -13,7 +16,7 @@ import type { AnswerRecord } from "@/lib/domain/types";
 import { formatCi, formatDate, formatInt, formatPct } from "@/lib/format";
 import { useI18n } from "@/i18n/provider";
 
-function BreakdownTable({ title, rows, config, minNote }: { title: string; rows: BreakdownRow[]; config: AnalysisConfig; minNote: string }) {
+export function BreakdownTable({ title, rows, config, minNote }: { title: string; rows: BreakdownRow[]; config: AnalysisConfig; minNote: string }) {
   const { m, t } = useI18n();
   if (rows.length === 0) return null;
   return (
@@ -67,6 +70,8 @@ export function TopicDetailSheet({
   onClose: () => void;
 }) {
   const { m, t, plural } = useI18n();
+  const router = useRouter();
+  const { setFilters } = useReadyData();
   const detail = React.useMemo(() => (topic ? computeTopicDetail(records, topic.key, config) : null), [topic, records, config]);
 
   return (
@@ -85,6 +90,20 @@ export function TopicDetailSheet({
                   <span className="text-xs">{STATUS_META[topic.status].hint}</span>
                 </div>
               </SheetDescription>
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // Переход к анализу ошибок с фильтром по этой теме.
+                    setFilters({ subject: topic.subject, grade: topic.grade, classId: null, textbookId: null, topicKey: topic.key });
+                    router.push("/skills");
+                  }}
+                >
+                  <ScanSearch aria-hidden />
+                  {m.skills.openForTopic}
+                </Button>
+              </div>
             </SheetHeader>
 
             <div className="grid grid-cols-1 gap-6 p-5">

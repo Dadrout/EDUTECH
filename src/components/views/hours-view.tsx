@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { filterRecords } from "@/lib/analytics/filters";
-import { buildHoursInputs, planTotal, recommendHours, type HoursRow } from "@/lib/analytics/hours";
+import { buildHoursInputs, planTotal, recommendHours, type HoursParams, type HoursRow } from "@/lib/analytics/hours";
 import { computeTopicStats } from "@/lib/analytics/topics";
 import { defaultHoursConfig } from "@/lib/config/analysis-config";
 import { curriculumTemplateCsv, downloadCsv, toCsv } from "@/lib/data/export";
@@ -25,6 +25,7 @@ import { useI18n } from "@/i18n/provider";
 import { Rich } from "@/i18n/rich";
 import { cn } from "@/lib/utils";
 import { useReadyData } from "@/providers/data-provider";
+import { HoursScenario } from "./hours-scenario";
 import { SyntheticNotice } from "./overview-view";
 
 function parseNum(value: string): number {
@@ -102,18 +103,19 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
   const [form, setForm] = React.useState(defaults);
   const set = (key: keyof typeof form) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
 
-  const plan = React.useMemo(
-    () =>
-      recommendHours(inputs, {
-        budgetHours: parseNum(form.budget),
-        targetPct: parseNum(form.target),
-        maxIncreaseShare: parseNum(form.maxInc) / 100,
-        maxDecreaseShare: parseNum(form.maxDec) / 100,
-        stepHours: parseNum(form.step),
-        mediumPct: config.thresholds.medium,
-      }),
-    [inputs, form, config.thresholds.medium],
+  // Одни и те же параметры — для рекомендации и для симулятора.
+  const params = React.useMemo<HoursParams>(
+    () => ({
+      budgetHours: parseNum(form.budget),
+      targetPct: parseNum(form.target),
+      maxIncreaseShare: parseNum(form.maxInc) / 100,
+      maxDecreaseShare: parseNum(form.maxDec) / 100,
+      stepHours: parseNum(form.step),
+      mediumPct: config.thresholds.medium,
+    }),
+    [form, config.thresholds.medium],
   );
+  const plan = React.useMemo(() => recommendHours(inputs, params), [inputs, params]);
 
   if (inputs.length === 0) {
     return (
@@ -344,6 +346,8 @@ function HoursPlanner({ subject, grade }: { subject: string; grade: number }) {
               </table>
             </div>
           </Section>
+
+          <HoursScenario rows={plan.rows} params={params} subject={subject} grade={grade} />
         </>
       )}
     </div>

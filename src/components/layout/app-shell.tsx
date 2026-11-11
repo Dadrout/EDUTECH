@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpenCheck, CalendarClock, Database, FileText, LayoutDashboard, Library, Menu, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import { BookOpenCheck, CalendarClock, Database, FileText, LayoutDashboard, Library, Menu, ScanSearch, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/language-switcher";
 import { SettingsDialog } from "@/components/common/settings-dialog";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ interface NavItem {
 const ANALYTICS_NAV: NavItem[] = [
   { href: "/", label: "overview", icon: LayoutDashboard },
   { href: "/topics", label: "topics", icon: BookOpenCheck },
+  { href: "/skills", label: "skills", icon: ScanSearch },
   { href: "/textbooks", label: "textbooks", icon: Library },
   { href: "/hours", label: "hours", icon: CalendarClock },
 ];
