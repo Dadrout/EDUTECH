@@ -33,7 +33,7 @@ Methodologists import CSV/XLSX test results and the curriculum plan, review the 
 ## Brand Commitments
 
 - Product name: **BilimLens** (decided by the user 2026-11-11; applied in the UI, metadata and all nine dictionaries).
-- Keep the current logo: bars against a threshold line (`src/app/icon.svg`).
+- Use the official logo supplied by the user: magnifying glass, book, bars and BilimLens wordmark. Original: `docs/assets/bilimlens-logo.png`; app assets: `public/brand/bilimlens-logo.png`, `src/app/icon.png` and `src/app/favicon.ico`.
 
 ## Evidence on Hand
 

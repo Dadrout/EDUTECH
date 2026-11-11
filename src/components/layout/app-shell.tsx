@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpenCheck, CalendarClock, Database, FileChartColumn, FileText, LayoutDashboard, Library, Menu, ScanSearch, SlidersHorizontal, SlidersVertical, type LucideIcon } from "lucide-react";
@@ -35,21 +36,19 @@ const DATA_NAV: NavItem[] = [
   { href: "/methodology", label: "methodology", icon: FileText },
 ];
 
-function Logo() {
+function Logo({ compact = false }: { compact?: boolean }) {
   const { m } = useI18n();
   return (
-    <Link href="/" className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30">
-      {/* Столбцы и линия порога: тема либо дотягивает до нормы, либо нет. */}
-      <svg viewBox="0 0 20 20" className="size-6 shrink-0" fill="none" aria-hidden>
-        <rect x="2.5" y="12" width="3.5" height="6" rx="0.75" className="fill-level-low" />
-        <rect x="8.25" y="5.5" width="3.5" height="12.5" rx="0.75" className="fill-primary" />
-        <rect x="14" y="2.5" width="3.5" height="15.5" rx="0.75" className="fill-primary" />
-        <path d="M1 9.25h18" className="stroke-foreground" strokeWidth="1.25" />
-      </svg>
-      <span className="leading-tight">
-        <span className="block text-lg font-semibold tracking-[-0.025em]">{m.common.appName}</span>
-        <span className="block text-[11px] text-muted-foreground">{m.common.appTagline}</span>
-      </span>
+    <Link href="/" className={cn("brand-lockup flex w-fit max-w-full flex-col items-start rounded-md bg-white outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50", compact ? "p-1.5" : "gap-1.5 p-2.5")}>
+      <Image
+        src="/brand/bilimlens-logo.png"
+        alt={m.common.appName}
+        width={782}
+        height={189}
+        sizes={compact ? "144px" : "176px"}
+        className={cn("h-auto max-w-full", compact ? "w-36" : "w-44")}
+      />
+      {!compact ? <span className="text-[11px] leading-snug text-[#596b65]">{m.common.appTagline}</span> : null}
     </Link>
   );
 }
@@ -152,7 +151,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
       <div className="min-w-0">
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
-          <Logo />
+          <Logo compact />
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" aria-label={m.nav.openMenu}>

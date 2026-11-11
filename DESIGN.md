@@ -50,7 +50,7 @@ components:
 
 ## Overview
 
-Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations. The interface places data and uncertainty before decoration. Keep the existing bars-and-threshold logo.
+Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations. The interface places data and uncertainty before decoration. Use the official user-supplied BilimLens logo (magnifying glass, book and bars) and its original wordmark. Present the full logo on white for legibility in the dark sidebar; use its symbol for browser icons.
 
 This document records implemented code decisions. Rendering, responsive appearance and PDF pagination have **not** been verified in this sandbox; see `docs/RELEASE.md`. No current screenshots are approved visual references. The direction helper ran without its remote catalogue; the product brief supplied the direction.
 

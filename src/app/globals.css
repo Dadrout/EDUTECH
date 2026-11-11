@@ -191,14 +191,13 @@
 
 .workspace-sidebar { color: var(--sidebar-foreground); background: var(--sidebar); }
 .workspace-sidebar .text-muted-foreground { color: var(--sidebar-muted); }
-.workspace-sidebar .fill-primary { fill: #b3d8c4; }
-.workspace-sidebar .stroke-foreground { stroke: var(--sidebar-foreground); }
 .workspace-sidebar .border-t { border-color: var(--sidebar-border); }
 .workspace-sidebar .sidebar-link { color: var(--sidebar-muted); }
 .workspace-sidebar .sidebar-link:hover,
 .workspace-sidebar a:hover { background: var(--sidebar-hover); color: var(--sidebar-foreground); }
 .workspace-sidebar .sidebar-link-active,
 .workspace-sidebar .sidebar-link-active:hover { background: var(--sidebar-active); color: #153d35; }
+.workspace-sidebar a.brand-lockup:hover { background: #ffffff; }
 .workspace-sidebar [role="combobox"] { background: var(--sidebar); color: var(--sidebar-foreground); border-color: var(--sidebar-border); }
 .report-table th { padding: 0.75rem 1.25rem; text-align: left; font-size: 0.75rem; font-weight: 500; color: var(--muted-foreground); background: var(--muted); }
 .report-table td { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); vertical-align: top; }
