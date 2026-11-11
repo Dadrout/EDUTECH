@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import "@fontsource-variable/onest";
+import "@fontsource-variable/geologica";
 import "./globals.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f5f7f6",
+  themeColor: "#f3f5f4",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

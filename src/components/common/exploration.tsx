@@ -62,7 +62,7 @@ export function Finding({ title, children, actions, tone = "default" }: {
   return (
     <section aria-label={m.ux.keyFinding} className="finding flex flex-col justify-between gap-4 border-b pb-5 md:flex-row md:items-start">
       <div className="min-w-0 max-w-3xl">
-        <h2 className={cn("font-editorial text-xl leading-snug font-semibold text-balance sm:text-[25px]", tone === "warning" && "text-level-low-fg", tone === "success" && "text-success-ink")}>{title}</h2>
+        <h2 className={cn("font-display text-xl leading-snug font-semibold tracking-[-0.02em] text-balance sm:text-[24px]", tone === "warning" && "text-level-low-fg", tone === "success" && "text-success-ink")}>{title}</h2>
         {children ? <div className="mt-2 text-sm leading-relaxed text-muted-foreground">{children}</div> : null}
       </div>
       {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
