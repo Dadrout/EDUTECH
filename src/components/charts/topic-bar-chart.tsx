@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ErrorBar, LabelList, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LEVEL_META } from "@/components/common/levels";
 import type { MasteryThresholds } from "@/lib/config/analysis-config";
 import type { MasteryLevel } from "@/lib/domain/types";
@@ -25,12 +25,32 @@ export interface TopicBarDatum {
 interface ChartRow extends TopicBarDatum {
   value: number;
   label: string;
+  /** Доверительный интервал как отклонения от значения, в п.п.: [вниз, вверх]. */
+  ci: [number, number] | null;
 }
 
 const ROW_HEIGHT = 30;
+// Геометрия области построения: по ней же ставятся кнопки строк поверх подписей.
+const MARGIN = { top: 18, right: 44, bottom: 4, left: 4 };
+const X_AXIS_HEIGHT = 24;
+const LABEL_FONT = "12px Geologica Variable, system-ui, sans-serif";
 
-function truncate(text: string, max: number): string {
-  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+/** Обрезать подпись по фактической ширине шрифта (кириллица Geologica шире средней оценки). */
+function fitText(text: string, maxWidth: number): string {
+  if (measureCtx === undefined) measureCtx = typeof document === "undefined" ? null : document.createElement("canvas").getContext("2d");
+  const ctx = measureCtx;
+  if (!ctx) return text.length > maxWidth / 7.6 ? `${text.slice(0, Math.max(1, Math.floor(maxWidth / 7.6) - 1))}…` : text;
+  ctx.font = LABEL_FONT;
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (ctx.measureText(`${text.slice(0, mid)}…`).width <= maxWidth) lo = mid;
+    else hi = mid - 1;
+  }
+  return `${text.slice(0, Math.max(1, lo)).trimEnd()}…`;
 }
 
 /**
@@ -51,15 +71,18 @@ export function TopicBarChart({
   const narrow = useNarrow();
   const { m, t } = useI18n();
   const labelWidth = narrow ? 130 : 290;
-  // ~6,8 px на символ при 12px — обрезаем подпись, чтобы она не выходила за край.
-  const maxChars = Math.floor((labelWidth - 12) / 6.8);
-  const rows: ChartRow[] = data.map((d) => ({ ...d, value: d.rate === null ? 0 : d.rate * 100, label: d.context ? `${d.name} · ${d.context}` : d.name }));
+  const rows: ChartRow[] = data.map((d) => {
+    const value = d.rate === null ? 0 : d.rate * 100;
+    const ci: [number, number] | null = d.rate !== null && d.ciLow != null && d.ciHigh != null ? [Math.max(0, value - d.ciLow * 100), Math.max(0, d.ciHigh * 100 - value)] : null;
+    return { ...d, value, ci, label: d.context ? `${d.name} · ${d.context}` : d.name };
+  });
   const height = Math.max(120, rows.length * ROW_HEIGHT + 36);
+  const band = rows.length ? (height - MARGIN.top - MARGIN.bottom - X_AXIS_HEIGHT) / rows.length : 0;
 
   return (
-    <div role="img" aria-label={ariaLabel} style={{ height }} className="w-full">
+    <div role={onSelect ? "group" : "img"} aria-label={ariaLabel} style={{ height }} className="relative w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 44, bottom: 4, left: 4 }} barCategoryGap={8}>
+        <BarChart data={rows} layout="vertical" margin={MARGIN} barCategoryGap={8} accessibilityLayer={false}>
           <CartesianGrid horizontal={false} stroke="var(--chart-grid)" />
           <XAxis
             type="number"
@@ -69,6 +92,7 @@ export function TopicBarChart({
             tick={AXIS_TICK}
             axisLine={{ stroke: "var(--chart-axis)" }}
             tickLine={false}
+            height={X_AXIS_HEIGHT}
           />
           <YAxis
             type="category"
@@ -83,7 +107,7 @@ export function TopicBarChart({
               return (
                 <text x={Number(props.x) - 8} y={Number(props.y)} dy={4} textAnchor="end" fontSize={12} fill="var(--foreground)">
                   <title>{text}</title>
-                  {truncate(text, maxChars)}
+                  {fitText(text, labelWidth - 14)}
                 </text>
               );
             }}
@@ -130,15 +154,30 @@ export function TopicBarChart({
             {rows.map((r) => (
               <Cell key={r.key} fill={LEVEL_META[r.level].color} />
             ))}
+            <ErrorBar dataKey="ci" direction="x" width={6} strokeWidth={1.25} stroke="var(--chart-ink)" strokeOpacity={0.55} />
             <LabelList
               dataKey="value"
               position="right"
+              offset={10}
               formatter={(v: unknown) => (typeof v === "number" ? formatPercentValue(Math.round(v)) : "")}
               style={{ fill: "var(--chart-ink)", fontSize: 11, stroke: "var(--card)", strokeWidth: 3, paintOrder: "stroke" }}
             />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      {onSelect
+        ? rows.map((r, i) => (
+            // Клавиатура и экранные дикторы: каждая строка — кнопка поверх подписи.
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => onSelect(r.key)}
+              aria-label={`${r.label}: ${formatPct(r.rate)}, ${m.units.ci} ${formatCi(r.ciLow, r.ciHigh)}`}
+              className="absolute left-0 rounded-md outline-none hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"
+              style={{ top: MARGIN.top + band * i, height: band, width: labelWidth + MARGIN.left }}
+            />
+          ))
+        : null}
     </div>
   );
 }

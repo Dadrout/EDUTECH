@@ -181,10 +181,10 @@ function SourceExplorer() {
 
 function DataQualityHint() {
   const { dataset } = useReadyData();
-  const { m } = useI18n();
+  const { m, plural } = useI18n();
   const coverage = React.useMemo(() => checkCurriculumCoverage(dataset.curriculum, dataset.records), [dataset.records, dataset.curriculum]);
   const partial = coverage.coursesWithoutPlan.length > 0 || coverage.resultsWithoutPlan.length > 0;
-  return <p role="note" className="text-sm text-muted-foreground">{formatInt(dataset.records.length)} · {m.data.statAnswers.toLowerCase()} · {dataset.meta.isSynthetic ? m.data.syntheticBadge : m.data.uploadedBadge}{dataset.curriculum.length === 0 ? ` · ${m.data.noPlanTitle}` : partial ? ` · ${m.data.partialPlanTitle}` : ""}</p>;
+  return <p role="note" className="text-sm text-muted-foreground">{plural(m.counts.answers, dataset.records.length)} · {dataset.meta.isSynthetic ? m.data.syntheticBadge : m.data.uploadedBadge}{dataset.curriculum.length === 0 ? ` · ${m.data.noPlanTitle}` : partial ? ` · ${m.data.partialPlanTitle}` : ""}</p>;
 }
 
 export function DataView() {

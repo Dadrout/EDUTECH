@@ -2,36 +2,74 @@
 name: BilimLens
 description: A precise workspace for evidence-based curriculum decisions
 colors:
-  primary: "#176254"
-  canvas: "#f5f7f6"
+  primary: "#17763b"
+  canvas: "#f3f5f4"
   surface: "#ffffff"
-  ink: "#192d2a"
-  muted-ink: "#596b65"
-  border: "#dce5df"
-  sidebar: "#153d35"
-  sidebar-ink: "#e6f1ea"
-  sidebar-muted: "#b3c9bd"
-  sidebar-active: "#d8ebde"
+  ink: "#121a16"
+  muted-ink: "#5c6862"
+  border: "#e3e8e5"
+  sidebar: "#ffffff"
+  sidebar-active: "#e5f3e9"
+  sidebar-active-ink: "#0e5a2b"
 typography:
-  headline:
-    fontFamily: "BilimLens Editorial, Noto Serif, Georgia, serif"
+  display:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
     fontSize: "34px"
+    fontWeight: 700
+    lineHeight: 1.1
+    letterSpacing: "-0.035em"
+  headline:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "28px"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.03em"
+  finding:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "24px"
     fontWeight: 600
-    lineHeight: 1.25
-    letterSpacing: "-0.025em"
+    lineHeight: 1.35
+    letterSpacing: "-0.02em"
+  metric:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 700
+    lineHeight: 1
   title:
-    fontFamily: "Onest Variable, sans-serif"
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 600
     lineHeight: 1.375
   body:
-    fontFamily: "Onest Variable, sans-serif"
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
+  dense:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.45
+  annotation:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.4
+  micro:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 500
+    lineHeight: 1.35
+  axis:
+    fontFamily: "Geologica Variable, system-ui, sans-serif"
+    fontSize: "10px"
+    fontWeight: 400
+    lineHeight: 1.2
 rounded:
+  bar-end: "4px"
   control: "10px"
-  section: "16px"
+  card: "14px"
+  section: "18px"
 spacing:
   unit: "4px"
   section-padding: "20px"
@@ -42,47 +80,51 @@ components:
     textColor: "{colors.surface}"
     rounded: "{rounded.control}"
     height: "36px"
-  analytical-section:
+  analytical-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.section}"
+    rounded: "{rounded.card}"
 ---
 
 ## Overview
 
-Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations. The interface places data and uncertainty before decoration. Use the official user-supplied BilimLens logo (magnifying glass, book and bars) and its original wordmark. Present the full logo on white for legibility in the dark sidebar; use its symbol for browser icons.
+Operate mode. Methodologists move from observations to topic-level decisions, textbook comparisons and hour allocations; the first audience is a hackathon jury judging a short live demo on a laptop. Data and uncertainty come before decoration. Use the official user-supplied BilimLens logo (magnifying glass, book and bars) with its original wordmark; the symbol serves as the browser icon.
 
-This document records implemented code decisions. Rendering, responsive appearance and PDF pagination have **not** been verified in this sandbox; see `docs/RELEASE.md`. No current screenshots are approved visual references. The direction helper ran without its remote catalogue; the product brief supplied the direction.
+`src/app/globals.css` is authoritative; this file records the decisions behind it. Browser QA (desktop, tablet, phone, nine languages) runs through `npm run test:e2e` against a production server.
 
 ## Colors
 
-Deep green anchors navigation; warm neutral surfaces keep charts legible. Status red, amber and green retain labels/icons. Textbook colors remain consistent across charts; error categories retain their own stable mapping. CSS in `src/app/globals.css` is authoritative, including semantic tokens not repeated here.
+Light theme only, by decision: the use scene is a lit room and a projector during the demo, and print/PDF share the same ink. Logo green is the single accent for primary actions, the active navigation item and focus. Neutral canvas and white cards keep charts legible.
+
+Color carries a verdict and nothing else. Mastery levels use red/amber/green with labels or icons beside them; a KPI value takes its level color, and no tile is brand-filled. Hour changes use one neutral direction pair everywhere (blue = hours gained, orange = hours given), never mastery red/green, always with a +/− sign. Textbook colors stay consistent across charts; error categories keep their own stable mapping. "No difference" and "insufficient data" verdicts are neutral, "preliminary" is amber, only a low-mastery finding is red.
 
 ## Typography
 
-Self-hosted Onest for controls, tables and body copy; licensed Noto Serif SemiBold (BilimLens Editorial) for page headings and the leading finding. Both provide Cyrillic support. Page headings scale from 27px to 34px; section headings 15px; body 14px, dense tables 13px, annotation 12px. Numeric columns use tabular lining numerals. Monospace is reserved for actual identifiers.
+Self-hosted Geologica Variable for everything (Cyrillic, Kazakh and Latin-script Uzbek covered; Chinese falls back to the system CJK face on screen and Noto Sans CJK in PDF). Ramp: 34 / 28 page headings, 24 leading finding, 22 metric numerals, 15 section titles, 14 body, 13 dense tables and controls, 12 annotation, 11 micro labels and chart legends, 10 chart axis ticks. Numbers use tabular lining numerals. Monospace only for real identifiers.
 
 ## Layout
 
-Desktop: 232px navigation at 1024px and above, content capped at 1480px with 36px gutters. A sticky, labelled toolbar toggle hides the entire rail and expands content to the full available width; the same control restores it. The preference persists locally; its server snapshot stays expanded to avoid hydration mismatch. Below 1024px: 56px mobile header and accessible drawer; 16px gutters, increasing to 24px at 640px. Charts keep their existing narrow-screen behavior. Wide tables scroll inside their own containers.
+Desktop: 248px white navigation rail at 1024px and above, content capped at 1480px. A sticky toolbar toggle hides the rail; while it is hidden, the toolbar keeps the AI methodologist, analysis settings and language switch. Below 1024px: 56px mobile header with the AI button and an accessible drawer; 16px gutters, 24px from 640px. Page grids use `minmax(0, 1fr)` columns so wide content (tab rows, tables) scrolls inside its own container instead of widening the page. Editing tables become stacked rows on phones.
 
 ## Elevation & Depth
 
-Analytical surfaces use a single border. Preserve Radix popover/dialog elevation and focus rings. No decorative gradients, new shadows or entrance animation.
+Cards: one border plus a soft, offset shadow (`--card-shadow`). Radix popovers and dialogs keep their elevation and focus rings. No decorative gradients, glass or entrance animation.
 
 ## Shapes
 
-Sections use 16px corners; controls 10px. Horizontal chart geometry communicates observed rates. Hatching is reserved for insufficient samples. No invented visual proof or mock performance values.
+Cards 14px, sections 18px, controls 10px, bar ends 4px. Horizontal chart geometry encodes observed rates on a single 0–100% scale shared by marks and axis labels; confidence intervals are drawn, not only listed in tooltips. Hatching is reserved for insufficient samples; a dashed outline marks "not final" (likely difficult, synthetic data).
 
 ## Components
 
-`AppShell` owns navigation and a keyboard skip link. `PageHeader` owns the document title and page heading; `Section`, `KpiTile`, `RateBar` and the existing tables/charts share tokens. Use disabled controls when an action is invalid. Keep loading, error, empty and insufficient-data states in the established data gate.
+`AppShell` owns navigation and the skip link. `PageHeader` owns the page heading; `Finding` states the page's one conclusion (with its reliability) and its next action. `Section`, `Disclosure`, `KpiTile`, `RateBar` and the charts share tokens. Disclosures carry the title once; their content sits in a plain card without a repeated heading. Pagination appears only when there is more than one page. Interactive charts expose every row as a focusable button.
 
-Reports use a dedicated pdf-lib text/vector document: five A4 landscape summary pages and a separately paginated full appendix. Web evidence uses tabs, collapsed details and page controls; every original row remains reachable. No full-page screenshot export.
+AI surfaces (methodologist panel, one compact insight per analytics page, the report section and its two labelled PDF pages) are secondary: they explain computed values and never replace them. The insight strip hides when AI is not configured or there is nothing to explain.
+
+Reports use a pdf-lib text/vector document: five A4 landscape summary pages (+2 when AI insights are included) and a separately paginated appendix.
 
 ## Do's and Don'ts
 
 - Show students and answer observations separately, including uncertainty and insufficient samples.
-- Translate interface copy through the one typed dictionary system; preserve imported names.
+- Translate interface copy through the one typed dictionary system; preserve imported names. No developer jargon (MVP, IDs) in user copy.
 - Explain that class rates are descriptive when assignments differ, textbook association does not prove causality, and hour allocations do not predict attainment.
-- Keep synthetic data visibly identified. Never add fictional skills, forecasts, endorsements or school statistics.
+- Keep synthetic data visibly identified with the shared notice. Never add fictional skills, forecasts, endorsements or school statistics.

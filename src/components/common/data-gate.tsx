@@ -18,12 +18,17 @@ export function DataGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="space-y-5" aria-busy="true" aria-live="polite">
         <span className="sr-only">{m.dataGate.loading}</span>
-        <Skeleton className="h-8 w-72" />
+        <Skeleton className="h-8 w-72 max-w-full" />
         <Skeleton className="h-4 w-[28rem] max-w-full" />
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border md:grid-cols-5">
-          {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="space-y-2 bg-card p-4">
-              <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-4 w-80 max-w-full" />
+        <div className="flex flex-wrap gap-2">
+          <Skeleton className="h-10 w-32 rounded-full" />
+          <Skeleton className="h-10 w-32 rounded-full" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="space-y-2 rounded-xl border bg-card p-4">
+              <Skeleton className="h-3 w-24 max-w-full" />
               <Skeleton className="h-7 w-16" />
             </div>
           ))}

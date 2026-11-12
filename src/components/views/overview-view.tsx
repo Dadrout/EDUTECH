@@ -13,7 +13,7 @@ import { LevelDistribution } from "@/components/charts/level-distribution";
 import { TopicBarChart } from "@/components/charts/topic-bar-chart";
 import { Button } from "@/components/ui/button";
 import { filterRecords } from "@/lib/analytics/filters";
-import { computeInsights, type Insight, type InsightSeverity } from "@/lib/analytics/insights";
+import { computeInsights, insightHref, type Insight, type InsightSeverity } from "@/lib/analytics/insights";
 import { computeOverview } from "@/lib/analytics/overview";
 import { computeTopicStats } from "@/lib/analytics/topics";
 import type { DifficultyStatus } from "@/lib/domain/types";
@@ -68,7 +68,7 @@ function InsightItem({ insight }: { insight: Insight }) {
           className="mt-1.5 inline-flex items-center gap-1 rounded text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40"
           onClick={() => {
             if (insight.scope) setFilters({ subject: insight.scope.subject, grade: insight.scope.grade, classId: null, textbookId: null, topicKey: null });
-            router.push(insight.href);
+            router.push(insightHref(insight));
           }}
         >
           {m.common.more}
@@ -116,7 +116,8 @@ function StatusSummary({ counts }: { counts: Record<DifficultyStatus, number> })
 }
 
 function OverviewContent() {
-  const { dataset, filters, config, courses } = useReadyData();
+  const { dataset, filters, config, courses, setFilters } = useReadyData();
+  const router = useRouter();
   const { m, t, plural } = useI18n();
   const records = React.useMemo(() => filterRecords(dataset.records, filters), [dataset.records, filters]);
   const topicStats = React.useMemo(() => computeTopicStats(records, config), [records, config]);
@@ -154,6 +155,15 @@ function OverviewContent() {
   const shownInsights = insightPage.rows;
 
   const k = overview.kpis;
+  const lead = topicStats.some(topic => topic.sufficient) ? insights[0] : undefined;
+  const openLead = () => {
+    if (!lead) return;
+    if (lead.scope) setFilters({ subject: lead.scope.subject, grade: lead.scope.grade, classId: null, textbookId: null, topicKey: null });
+    router.push(insightHref(lead));
+  };
+  // Уровень среднего результата — тем же цветом, что и уровни тем (цвет только как вердикт).
+  const averagePct = k.estimate?.rate != null ? k.estimate.rate * 100 : null;
+  const averageTone = averagePct == null ? "default" : averagePct < config.thresholds.medium ? "low" : averagePct < config.thresholds.high ? "medium" : "high";
 
   if (records.length === 0) {
     return (
@@ -165,12 +175,12 @@ function OverviewContent() {
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <Finding title={topicStats.some(topic => topic.sufficient) ? insights[0]?.title ?? m.overview.noProblemsTitle : m.ux.noReliableFinding} tone={overview.kpis.problemTopics > 0 ? "warning" : "default"} actions={<Button asChild variant="outline"><Link href="/reports">{m.ux.createReport}</Link></Button>}>
+      <Finding title={topicStats.some(topic => topic.sufficient) ? insights[0]?.title ?? m.overview.noProblemsTitle : m.ux.noReliableFinding} tone={overview.kpis.problemTopics > 0 ? "warning" : "default"} actions={<>{lead?.scope?.topicKey ? <Button onClick={openLead}>{m.ux.openTopic}<ArrowRight aria-hidden /></Button> : null}<Button asChild variant="outline"><Link href="/reports">{m.ux.createReport}</Link></Button></>}>
         <p>{topicStats.some(topic => topic.sufficient) ? insights[0]?.detail ?? m.overview.noProblemsDescription : m.ux.notEnoughData}</p>
       </Finding>
       {/* Сначала выводы (результат, проблемные темы), затем объём данных, на котором они получены. */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)]">
-        <KpiTile label={m.overview.kpiAverage} value={formatPct(k.estimate?.rate)} sub={t(m.units.ciValue, { ci: formatCi(k.estimate?.ciLow, k.estimate?.ciHigh) })} />
+        <KpiTile tone={averageTone} label={m.overview.kpiAverage} value={formatPct(k.estimate?.rate)} sub={t(m.units.ciValue, { ci: formatCi(k.estimate?.ciLow, k.estimate?.ciHigh) })} />
         <KpiTile
           tone={k.problemTopics > 0 ? "low" : "default"}
           label={m.overview.kpiProblems}
@@ -216,15 +226,13 @@ function OverviewContent() {
               <TopicBarChart data={chartTopics} thresholds={config.thresholds} ariaLabel={m.overview.chartTitle} />
             </div>
           </Section>
-          <Disclosure title={m.overview.statusTitle}>
-          <Section
+          <Disclosure
             title={m.overview.statusTitle}
             description={k.dateFrom ? t(m.overview.testingPeriod, { from: formatDate(k.dateFrom), to: formatDate(k.dateTo) }) : undefined}
           >
-            <div className="px-5 py-2">
+            <div className="rounded-xl border bg-card px-5 py-2">
               <StatusSummary counts={statusCounts} />
             </div>
-          </Section>
           </Disclosure>
         </div>
 
@@ -244,15 +252,10 @@ function OverviewContent() {
         </Section>
       </div>
 
-      <Disclosure title={m.overview.distributionTitle}>
-      <Section
-        title={m.overview.distributionTitle}
-        description={t(m.overview.distributionDescription, { n: config.minAnswersPerStudent })}
-      >
-        <div className="px-5 py-5">
+      <Disclosure title={m.overview.distributionTitle} description={t(m.overview.distributionDescription, { n: config.minAnswersPerStudent })}>
+        <div className="rounded-xl border bg-card px-5 py-5">
           <LevelDistribution subjects={overview.subjects} thresholds={config.thresholds} />
         </div>
-      </Section>
       </Disclosure>
     </div>
   );

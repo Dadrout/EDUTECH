@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { RotateCcw } from "lucide-react";
+import { ListFilter, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Option } from "@/lib/analytics/filters";
@@ -96,6 +96,7 @@ export function FilterBar({
   const { filters, options, setFilters } = useReadyData();
   const { m } = useI18n();
   const active = fields.some((f) => filters[f] !== null);
+  const activeExtra = fields.filter((f) => !["subject", "grade"].includes(f) && filters[f] !== null).length;
 
   const set = <K extends keyof DataFilters>(key: K, value: DataFilters[K]) => setFilters({ [key]: value } as Partial<DataFilters>);
 
@@ -108,8 +109,12 @@ export function FilterBar({
         <FilterSelect field="grade" value={filters.grade} options={options.grades} onChange={(v) => set("grade", v)} allowAll />
       ) : null}
       {fields.some(f => !["subject", "grade"].includes(f)) ? (
-        <details className="col-span-2 min-w-0 sm:relative" open={fields.some(f => !["subject", "grade"].includes(f) && filters[f] !== null) || undefined}>
-          <summary className="cursor-pointer rounded-md border bg-card px-3 py-2 text-xs font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring">{m.ux.details} · {fields.filter(f => !["subject", "grade"].includes(f) && filters[f] !== null).length}</summary>
+        <details className="col-span-2 min-w-0 sm:relative" open={activeExtra > 0 || undefined}>
+          <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1.5 rounded-md border bg-card px-3 py-2 text-xs font-medium outline-none hover:bg-secondary focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <ListFilter className="size-3.5" aria-hidden />
+            {m.ux.moreFilters}
+            {activeExtra > 0 ? <span className="rounded-full bg-primary px-1.5 text-[11px] leading-4 text-primary-foreground tabular">{activeExtra}</span> : null}
+          </summary>
           <div className="mt-3 grid gap-3 border-l pl-3 sm:flex sm:flex-wrap">
       {fields.includes("classId") ? (
         <FilterSelect field="classId" value={filters.classId} options={options.classes} onChange={(v) => set("classId", v)} allowAll />

@@ -151,7 +151,7 @@ function Comparison({ subject, grade }: { subject: string; grade: number }) {
         </div>
       ) : (
         <>
-          <Finding title={result.verdicts[0] ? VERDICT_META[result.verdicts[0].level].label : m.textbooks.verdict.insufficient} tone={result.verdicts.some(v => v.level === "preliminary" || v.level === "insufficient") ? "warning" : "default"}>
+          <Finding title={result.verdicts[0] ? VERDICT_META[result.verdicts[0].level].label : m.textbooks.verdict.insufficient} tone={result.verdicts[0]?.level === "preliminary" ? "caution" : "default"}>
             <p>{result.verdicts[0]?.summary ?? m.textbooks.selectTwoDescription}</p>
             <p className="mt-2 text-xs text-muted-foreground">{t(m.textbooks.verdictDescription, { topics: plural(m.textbooks.comparableTopics, result.comparableTopicCount), total: result.topics.length, questions: plural(m.textbooks.commonQuestions, result.commonQuestionCount) })}</p>
             <p className="mt-1 text-xs text-muted-foreground">{m.textbooks.method5}</p>
@@ -440,7 +440,8 @@ function TextbooksContent() {
     return <CoursePicker reason={m.textbooks.pickerReason} />;
   }
   // key сбрасывает выбор учебников при смене курса.
-  return <Comparison key={`${filters.subject}|${filters.grade}`} subject={filters.subject} grade={filters.grade} />;
+  // AI-инсайт — только когда выбран курс и есть что сравнивать.
+  return <><AiPageInsight page="textbooks" /><Comparison key={`${filters.subject}|${filters.grade}`} subject={filters.subject} grade={filters.grade} /></>;
 }
 
 export function TextbooksView() {
@@ -458,7 +459,6 @@ export function TextbooksView() {
           </AlertDescription>
         </Alert>
         <FilterBar fields={["subject", "grade", "topicKey"]} />
-        <AiPageInsight page="textbooks" />
         <TextbooksContent />
       </DataGate>
     </div>

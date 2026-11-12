@@ -24,7 +24,7 @@ import { useReadyData } from "@/providers/data-provider";
 import { SyntheticNotice } from "./overview-view";
 import { BreakdownTable } from "./topic-detail-sheet";
 
-const MAX_CHART_SKILLS = 6;
+const MAX_CHART_SKILLS = 12;
 const QUESTIONS_PREVIEW = 12;
 const STACKED_SKILLS = 6;
 

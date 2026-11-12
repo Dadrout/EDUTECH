@@ -173,6 +173,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
             {collapsed ? m.ux.showSidebar : m.ux.hideSidebar}
           </Button>
+          {collapsed ? (
+            // Панель скрыта — AI-методист, параметры и язык остаются под рукой.
+            <div className="ml-auto flex items-center gap-1">
+              <AiMethodologist trigger={<Button variant="ghost" size="sm"><Sparkles aria-hidden />{m.ai.open}</Button>} />
+              <SettingsDialog trigger={<Button variant="ghost" size="sm"><SlidersHorizontal aria-hidden />{m.settings.title}</Button>} />
+              <div className="w-44"><LanguageSwitcher /></div>
+            </div>
+          ) : null}
         </div>
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4 lg:hidden">
           <Logo compact />

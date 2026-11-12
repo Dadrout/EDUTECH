@@ -157,7 +157,25 @@ function HoursPlanner({ subject, grade, scenarioOnly = false }: { subject: strin
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      {plan.ok && !scenarioOnly ? <Finding title={t(m.hours.okTitle, { recommended: formatHours(plan.recommendedTotal), reserve: formatHours(plan.reserveHours), budget: formatHours(plan.budgetHours) })} tone="success" actions={<Button asChild><Link href="/simulator">{m.nav.simulator}</Link></Button>}><p>{plural(m.hours.kpiChanged, changed)} · {m.hours.kpiMoved}: {formatHours(plan.movedHours)}</p><p className="mt-1 text-xs text-muted-foreground">{m.hours.method6}</p></Finding> : null}
+      {plan.ok && !scenarioOnly ? (() => {
+        // Нехватка часов — главное сообщение; соблюдённые ограничения уходят в подзаголовок.
+        const shortfall = plan.unmetDemandHours > 0;
+        const constraints = t(m.hours.okTitle, { recommended: formatHours(plan.recommendedTotal), reserve: formatHours(plan.reserveHours), budget: formatHours(plan.budgetHours) });
+        return (
+          <Finding
+            title={shortfall ? t(m.hours.shortfallTitle, { hours: formatHours(plan.unmetDemandHours) }) : constraints}
+            tone={shortfall ? "caution" : "success"}
+            actions={<>
+              <Button onClick={() => exportPlan(plan.rows, subject, grade, plan.reserveHours)}><Download aria-hidden />{m.hours.downloadCsv}</Button>
+              <Button asChild variant="outline"><Link href="/simulator">{m.nav.simulator}</Link></Button>
+            </>}
+          >
+            {shortfall ? <p>{constraints}. {m.hours.shortfallHint}</p> : null}
+            <p className={shortfall ? "mt-1" : undefined}>{plural(m.hours.kpiChanged, changed)} · {m.hours.kpiMoved}: {formatHours(plan.movedHours)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{m.hours.method6}</p>
+          </Finding>
+        );
+      })() : null}
       <Disclosure
         title={m.hours.paramsTitle}
         description={m.hours.paramsDescription}

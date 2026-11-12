@@ -72,6 +72,8 @@ function Panel() {
           </p>
         ) : null}
 
+        {availability === "ready" && !ai.answer && !ai.busy ? <p className="text-sm leading-relaxed text-muted-foreground">{m.ai.scopeHint}</p> : null}
+
         <div className="grid gap-2">
           <h3 className="text-xs font-medium text-muted-foreground">{m.ai.suggested}</h3>
           <div className="flex flex-wrap gap-2">
@@ -81,9 +83,11 @@ function Panel() {
                 type="button"
                 disabled={availability !== "ready" || ai.busy}
                 onClick={() => ask(q)}
-                className="rounded-md border bg-card px-2.5 py-1.5 text-left text-[13px] outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:opacity-50"
+                aria-label={`${m.ai.ask}: ${q}`}
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-md border bg-card px-2.5 py-1.5 text-left text-[13px] outline-none hover:bg-secondary focus-visible:ring-[3px] focus-visible:ring-ring/30 disabled:opacity-50"
               >
-                {q}
+                <span>{q}</span>
+                <Send className="size-3 shrink-0 text-muted-foreground" aria-hidden />
               </button>
             ))}
           </div>

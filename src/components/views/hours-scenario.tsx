@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AlertOctagon, AlertTriangle, CheckCircle2, Download, Minus, Plus, RotateCcw } from "lucide-react";
 import { Pagination, usePagination } from "@/components/common/exploration";
-import { MethodNote, Section } from "@/components/common/blocks";
+import { MethodNote } from "@/components/common/blocks";
 import { LEVEL_META } from "@/components/common/levels";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/i18n/provider";
@@ -34,7 +34,6 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
   const evaluation = React.useMemo(() => evaluateScenario(rows, custom, params), [rows, custom, params]);
   // Editing is always in half-hours; recommendation step controls transfers only.
   const step = 0.5;
-  const rowPage = usePagination(rows, 6);
   const evaluationByKey = new Map(evaluation.rows.map(row => [row.key, row]));
 
   const setHours = (key: string, value: number) => {
@@ -75,25 +74,20 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
   };
 
   return (
-    <Section
-      title={m.scenario.title}
-      description={m.scenario.description}
-      actions={
-        <>
-          <Button variant="ghost" size="sm" onClick={() => setCustom(initialScenario(rows, "recommended"))}>
-            <RotateCcw aria-hidden />
-            {m.scenario.resetRecommended}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCustom(initialScenario(rows, "current"))}>
-            {m.scenario.resetCurrent}
-          </Button>
-          <Button variant="outline" size="sm" onClick={exportScenario} disabled={!evaluation.valid}>
-            <Download aria-hidden />
-            {m.scenario.exportCsv}
-          </Button>
-        </>
-      }
-    >
+    <section className="analytical-section min-w-0 overflow-hidden rounded-xl border bg-card shadow-card">
+      <div className="flex flex-wrap items-center gap-2 border-b px-5 py-4 [&_button]:min-h-10">
+        <Button variant="ghost" size="sm" onClick={() => setCustom(initialScenario(rows, "recommended"))}>
+          <RotateCcw aria-hidden />
+          {m.scenario.resetRecommended}
+        </Button>
+        <Button variant="ghost" size="sm" onClick={() => setCustom(initialScenario(rows, "current"))}>
+          {m.scenario.resetCurrent}
+        </Button>
+        <Button variant="outline" size="sm" onClick={exportScenario} disabled={!evaluation.valid}>
+          <Download aria-hidden />
+          {m.scenario.exportCsv}
+        </Button>
+      </div>
       {/* Бюджет: сколько распределено и что осталось. */}
       <div className="grid gap-3 border-b px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <div className="grid gap-2">
@@ -116,9 +110,9 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
       </div>
 
       {/* Часы по темам. */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-[13px]">
-          <thead className="border-b bg-muted/40 text-xs text-muted-foreground">
+      <div className="sm:overflow-x-auto">
+        <table className="block w-full text-[13px] sm:table sm:min-w-[860px]">
+          <thead className="hidden border-b bg-muted/40 text-xs text-muted-foreground sm:table-header-group">
             <tr>
               <th className="h-9 px-5 text-left font-medium">{m.scenario.colTopic}</th>
               <th className="h-9 px-3 text-right font-medium">{m.scenario.colCurrent}</th>
@@ -127,27 +121,28 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
               <th className="h-9 px-5 text-right font-medium">{m.scenario.colDelta}</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
-            {rowPage.rows.map((source) => {
+          <tbody className="block divide-y sm:table-row-group">
+            {rows.map((source) => {
               const r = evaluationByKey.get(source.key)!;
               const meta = LEVEL_META[source.level];
               const invalid = errorKeys.has(r.key);
               const max = sliderMax(source);
               return (
-                <tr key={r.key} className={cn("align-middle", invalid && "bg-level-low-bg/45")}>
-                  <td className="max-w-72 px-5 py-2.5">
-                    <div className="font-medium">{r.topicName}</div>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <tr key={r.key} className={cn("grid grid-cols-[auto_1fr] items-center px-5 py-4 align-middle sm:table-row sm:p-0", invalid && "bg-level-low-bg/45")}>
+                  <td className="col-span-2 min-w-0 pb-2 sm:max-w-72 sm:px-5 sm:py-2.5">
+                    <div className="flex flex-wrap items-center gap-2 font-medium break-words">{r.topicName}</div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                       <meta.Icon className="size-3.5" style={{ color: meta.color }} aria-label={meta.label} />
                       <span className="tabular">{formatPct(r.rate)}</span>
                       <span>· {t(m.scenario.minHint, { hours: formatHours(r.minHours) })}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2.5 text-right text-muted-foreground tabular">{formatHours(r.current)}</td>
-                  <td className="px-3 py-2.5 text-right text-muted-foreground tabular">{formatHours(r.recommended)}</td>
-                  <td className="px-3 py-2.5">
+                  <td className="text-muted-foreground tabular sm:px-3 sm:py-2.5 sm:text-right"><span className="sm:hidden">{m.scenario.colCurrent}: </span>{formatHours(r.current)}<span className="px-2 sm:hidden">→</span></td>
+                  <td className="text-muted-foreground tabular sm:px-3 sm:py-2.5 sm:text-right"><span className="sm:hidden">{m.scenario.colRecommended}: </span>{formatHours(r.recommended)}</td>
+                  <td className="col-span-2 py-3 sm:px-3 sm:py-2.5">
+                    <span className="mb-1 block text-xs text-muted-foreground sm:hidden">{m.scenario.colCustom}</span>
                     <div className="flex items-center gap-2">
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={m.scenario.decrease} onClick={() => setHours(r.key, r.custom - step)} disabled={r.custom <= r.minHours}>
+                      <Button type="button" variant="ghost" size="icon-sm" className="size-11 sm:size-8" aria-label={m.scenario.decrease} onClick={() => setHours(r.key, r.custom - step)} disabled={r.custom <= r.minHours}>
                         <Minus aria-hidden />
                       </Button>
                       <input
@@ -158,9 +153,9 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                         value={Math.min(r.custom, max)}
                         onChange={(e) => setHours(r.key, Number(e.target.value))}
                         aria-label={t(m.scenario.sliderLabel, { topic: r.topicName })}
-                        className="h-1.5 w-36 cursor-pointer accent-[var(--primary)]"
+                        className="hidden h-1.5 w-36 cursor-pointer accent-[var(--primary)] sm:block"
                       />
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label={m.scenario.increase} onClick={() => setHours(r.key, r.custom + step)}>
+                      <Button type="button" variant="ghost" size="icon-sm" className="order-2 size-11 sm:order-none sm:size-8" aria-label={m.scenario.increase} onClick={() => setHours(r.key, r.custom + step)}>
                         <Plus aria-hidden />
                       </Button>
                       <input
@@ -174,7 +169,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                         }}
                         aria-label={t(m.scenario.sliderLabel, { topic: r.topicName })}
                         className={cn(
-                          "h-8 w-16 rounded-md border border-input bg-card px-2 text-right text-[13px] font-semibold tabular outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
+                          "order-1 h-11 w-20 rounded-md sm:order-none sm:h-8 sm:w-16 border border-input bg-card px-2 text-right text-[13px] font-semibold tabular outline-none focus-visible:ring-[3px] focus-visible:ring-ring/30",
                           invalid && "border-level-low text-level-low-fg",
                         )}
                       />
@@ -182,12 +177,13 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                   </td>
                   <td
                     className={cn(
-                      "px-5 py-2.5 text-right font-semibold tabular",
-                      r.deltaCurrent > 0 && "text-primary",
-                      r.deltaCurrent < 0 && "text-[#b4471c]",
+                      "col-span-2 font-semibold tabular sm:px-5 sm:py-2.5 sm:text-right",
+                      r.deltaCurrent > 0 && "text-[var(--series-1)]",
+                      r.deltaCurrent < 0 && "text-[var(--series-2)]",
                       r.deltaCurrent === 0 && "font-normal text-muted-foreground",
                     )}
                   >
+                    <span className="font-normal text-muted-foreground sm:hidden">{m.scenario.colDelta}: </span>
                     {formatHoursDelta(r.deltaCurrent)}
                   </td>
                 </tr>
@@ -196,8 +192,6 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
           </tbody>
         </table>
       </div>
-
-      <Pagination {...rowPage} onPageChange={rowPage.setPage} />
 
       {/* Ограничения и сравнение планов. */}
       <div className="grid grid-cols-1 gap-5 border-t px-5 py-4 xl:grid-cols-2">
@@ -240,9 +234,9 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
               <p>{m.scenario.method3}</p>
             </MethodNote>
           </div>
-          <div className="overflow-x-auto rounded-lg border">
-            <table className="w-full min-w-[440px] text-[13px]">
-              <thead className="bg-muted/60 text-xs text-muted-foreground">
+          <div className="min-w-0 rounded-lg border sm:overflow-x-auto">
+            <table className="block w-full text-[13px] sm:table sm:min-w-[440px]">
+              <thead className="hidden bg-muted/60 text-xs text-muted-foreground sm:table-header-group">
                 <tr>
                   <th className="px-3 py-2 text-left font-medium" />
                   <th className="px-3 py-2 text-right font-medium">{m.scenario.planCurrent}</th>
@@ -250,7 +244,7 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                   <th className="px-3 py-2 text-right font-medium text-foreground">{m.scenario.planCustom}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="block divide-y sm:table-row-group">
                 {(
                   [
                     ["total", m.scenario.metricTotal],
@@ -261,11 +255,11 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
                     ["shift", m.scenario.metricPriorityShift],
                   ] as const
                 ).map(([key, label]) => (
-                  <tr key={key}>
-                    <td className="px-3 py-2 text-muted-foreground">{label}</td>
-                    <td className="px-3 py-2 text-right tabular">{metric(evaluation.current, key)}</td>
-                    <td className="px-3 py-2 text-right tabular">{metric(evaluation.recommended, key)}</td>
-                    <td className="px-3 py-2 text-right font-semibold tabular">{metric(evaluation.custom, key)}</td>
+                  <tr key={key} className="grid grid-cols-3 sm:table-row">
+                    <td className="col-span-3 px-3 py-2 text-muted-foreground">{label}</td>
+                    <td className="min-w-0 px-3 py-2 text-right tabular"><span className="mb-1 block text-left text-[11px] font-normal text-muted-foreground sm:hidden">{m.scenario.planCurrent}</span>{metric(evaluation.current, key)}</td>
+                    <td className="min-w-0 px-3 py-2 text-right tabular"><span className="mb-1 block text-left text-[11px] font-normal text-muted-foreground sm:hidden">{m.scenario.planRecommended}</span>{metric(evaluation.recommended, key)}</td>
+                    <td className="min-w-0 px-3 py-2 text-right font-semibold tabular"><span className="mb-1 block text-left text-[11px] font-normal text-muted-foreground sm:hidden">{m.scenario.planCustom}</span>{metric(evaluation.custom, key)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -273,6 +267,6 @@ export function HoursScenario({ rows, params, subject, grade }: { rows: HoursRow
           </div>
         </div>
       </div>
-    </Section>
+    </section>
   );
 }

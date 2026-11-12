@@ -10,6 +10,12 @@ import type { TopicStats } from "./topics";
 
 export type InsightSeverity = "critical" | "warning" | "info";
 
+/** Куда ведёт вывод: тематический вывод открывает карточку самой темы. */
+export function insightHref(insight: Pick<Insight, "href" | "scope">): string {
+  const key = insight.scope?.topicKey;
+  return key && insight.href === "/topics" ? `/topics?topic=${encodeURIComponent(key)}` : insight.href;
+}
+
 export interface Insight {
   id: string;
   severity: InsightSeverity;

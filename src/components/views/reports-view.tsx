@@ -25,6 +25,7 @@ import { buildAiContext } from "@/lib/ai/context";
 import type { AiReportInsights } from "@/lib/ai/schema";
 import { EMPTY_FILTERS } from "@/lib/domain/types";
 import { ErrorBars, QuestionTable } from "./skills-view";
+import { SyntheticNotice } from "./overview-view";
 
 const resources = new Map<string, Promise<Uint8Array>>();
 async function resource(url: string): Promise<Uint8Array> {
@@ -117,7 +118,7 @@ function ReportContent() {
       <p>{reliable ? first?.detail ?? m.ux.summaryDescription : m.ux.notEnoughData}</p><p className="mt-2 text-xs">{dataset.meta.isSynthetic ? m.data.demoName : report.sample.datasetName} · {formatDate(report.sample.dateFrom)} — {formatDate(report.sample.dateTo)}</p>
     </Finding>
     <div className="flex flex-wrap items-start justify-between gap-4 border-b pb-5">
-      <div><p className="text-sm font-medium">{m.ux.reportFormat}</p><p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">{r.scopeNote}</p></div>
+      <div><p className="text-sm font-medium">{m.ux.reportFormat}</p><p className="mt-1 max-w-2xl text-xs leading-relaxed text-pretty text-muted-foreground">{r.scopeNote}</p></div>
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => void download(false)} disabled={busy !== null}>{busy === "report" ? <LoaderCircle className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}{busy === "report" ? m.ux.pdfPreparing : m.ux.downloadReport}</Button>
         <Button variant="outline" onClick={() => void download(true)} disabled={busy !== null}>{busy === "appendix" ? <LoaderCircle className="animate-spin" aria-hidden /> : <FileDown aria-hidden />}{busy === "appendix" ? m.ux.pdfPreparing : m.ux.downloadAppendix}</Button>
@@ -125,7 +126,7 @@ function ReportContent() {
     </div>
     {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     <AiReportSection context={aiContext} request={aiReport as Parameters<typeof AiReportSection>[0]["request"]} />
-    {report.sample.isSynthetic ? <p role="note" className="text-xs text-level-medium-fg">{r.synthetic}</p> : null}
+    <SyntheticNotice />
     {unplanned > 0 ? <p role="note" className="text-sm text-level-medium-fg">{r.unplannedTopics}: {formatInt(unplanned)}</p> : null}
     {failedPlans.length > 0 ? <div role="alert" className="rounded-md border border-level-low/30 p-4 text-sm text-level-low-fg"><p className="font-medium">{m.hours.conflictTitle}: {formatInt(failedPlans.length)}</p><p className="mt-1">{failedPlans[0].plan.ok ? "" : failedPlans[0].plan.message}</p></div> : null}
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border lg:grid-cols-4">

@@ -23,7 +23,8 @@ export function AiPageInsight({ page }: { page: AiPage }) {
   const { reset } = ai;
   React.useEffect(() => reset(), [context, reset]);
 
-  if (availability === "loading") return null;
+  // Нечего объяснять или AI не настроен — полоса не занимает место (статус показывает панель AI-методиста).
+  if (availability === "loading" || availability === "no_data" || availability === "off") return null;
   const blocked = availability !== "ready";
 
   return (
@@ -32,7 +33,7 @@ export function AiPageInsight({ page }: { page: AiPage }) {
         <div className="flex min-w-0 items-center gap-2">
           <Sparkles className="size-4 shrink-0 text-primary" aria-hidden />
           <span className="text-sm font-medium">{m.ai.insightTitle}</span>
-          {!ai.answer && !ai.busy ? <span className="hidden text-xs text-muted-foreground sm:inline">{blocked ? m.ai.status[availability === "off" ? "off" : availability === "uploaded_off" ? "uploadedOff" : "noData"] : m.ai.insightHint}</span> : null}
+          {!ai.answer && !ai.busy ? <span className="hidden text-xs text-muted-foreground sm:inline">{blocked ? m.ai.status.uploadedOff : m.ai.insightHint}</span> : null}
         </div>
         {!blocked && !ai.answer ? (
           <Button size="sm" variant="outline" disabled={ai.busy} onClick={() => void ai.run(context)}>
@@ -41,7 +42,7 @@ export function AiPageInsight({ page }: { page: AiPage }) {
           </Button>
         ) : null}
       </div>
-      {blocked ? <p className="mt-1 text-xs text-muted-foreground sm:hidden">{m.ai.status[availability === "off" ? "off" : availability === "uploaded_off" ? "uploadedOff" : "noData"]}</p> : null}
+      {blocked ? <p className="mt-1 text-xs text-muted-foreground sm:hidden">{m.ai.status.uploadedOff}</p> : null}
       {ai.busy ? (
         <div className="mt-3 grid gap-2" aria-live="polite" aria-busy="true">
           <span className="sr-only">{m.ai.generating}</span>

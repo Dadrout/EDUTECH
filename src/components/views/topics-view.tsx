@@ -85,6 +85,9 @@ function SortHeader({
   );
 }
 
+const subscribeNever = () => () => {};
+const readTopicParam = () => new URLSearchParams(window.location.search).get("topic");
+
 function TopicsContent() {
   const { dataset, filters, config, courses, setFilters } = useReadyData();
   const { m, t } = useI18n();
@@ -97,7 +100,19 @@ function TopicsContent() {
   const [sort, setSort] = React.useState<{ key: SortKey; dir: 1 | -1 }>({ key: "rate", dir: 1 });
   const [chartOrder, setChartOrder] = React.useState<"rate" | "program">("rate");
   const [visualization, setVisualization] = React.useState<"ranking" | "matrix">("ranking");
-  const [selectedKey, setSelectedKey] = React.useState<string | null>(null);
+  // Ссылка вида /topics?topic=<ключ> открывает карточку темы (переходы с обзора, закладки).
+  const urlTopic = React.useSyncExternalStore(subscribeNever, readTopicParam, () => null);
+  // undefined — следовать ссылке; после явного выбора или закрытия — локальный выбор.
+  const [pickedKey, setSelectedKey] = React.useState<string | null | undefined>(undefined);
+  const selectedKey = pickedKey === undefined ? urlTopic : pickedKey;
+  const closeTopic = React.useCallback(() => {
+    setSelectedKey(null);
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("topic")) {
+      url.searchParams.delete("topic");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
+  }, []);
 
   const counts = React.useMemo(() => {
     const c: Record<DifficultyStatus, number> = { difficult: 0, likely_difficult: 0, attention: 0, mastered: 0, insufficient: 0 };
@@ -129,7 +144,7 @@ function TopicsContent() {
 
   const matrixRows = React.useMemo(() => heatmap?.rows ?? [], [heatmap]);
   const matrixPage = usePagination(matrixRows, 12);
-  const chartPage = usePagination(chartData, 8);
+  const chartPage = usePagination(chartData, 16);
   const tablePage = usePagination(visible, 12);
   const weakest = [...visible].filter((topic) => topic.sufficient).sort((a, b) => (a.rate ?? 1) - (b.rate ?? 1))[0];
 
@@ -341,7 +356,7 @@ function TopicsContent() {
         <Pagination page={tablePage.page} pageCount={tablePage.pageCount} total={tablePage.total} start={tablePage.start} end={tablePage.end} onPageChange={tablePage.setPage} />
       </Disclosure>
 
-      <TopicDetailSheet topic={selected} records={records} config={config} onClose={() => setSelectedKey(null)} />
+      <TopicDetailSheet topic={selected} records={records} config={config} onClose={closeTopic} />
     </div>
   );
 }
