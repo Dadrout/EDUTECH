@@ -58,6 +58,9 @@ function Dropzone({ onFile, busy, kind }: { onFile: (file: File) => void; busy: 
         type="file"
         accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="sr-only"
+        // Выбор файла — через видимую кнопку; скрытое поле не дублирует её в порядке Tab.
+        tabIndex={-1}
+        aria-label={kind === "results" ? m.import.dropResults : m.import.dropPlan}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onFile(f);

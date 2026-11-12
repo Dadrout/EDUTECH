@@ -85,17 +85,25 @@ function violatesPrivacy(context: AiContext): boolean {
 
 export class RateLimiter {
   private minute = new Map<string, number[]>();
+  private global: number[] = [];
   private day = { key: "", attempts: 0 };
-  constructor(private readonly perMinute: number, private readonly perDay: number) {}
+  /** Общий минутный предел: адрес клиента можно подделать, поэтому всплеск ограничен и для всех вместе. */
+  private readonly globalPerMinute: number;
+  constructor(private readonly perMinute: number, private readonly perDay: number, globalPerMinute?: number) {
+    this.globalPerMinute = globalPerMinute ?? perMinute * 5;
+  }
 
   /** Запрос клиента в минутном окне. */
   allowRequest(client: string, now = Date.now()): boolean {
+    this.global = this.global.filter((t) => now - t < 60_000);
+    if (this.global.length >= this.globalPerMinute) return false;
     const recent = (this.minute.get(client) ?? []).filter((t) => now - t < 60_000);
     if (recent.length >= this.perMinute) {
       this.minute.set(client, recent);
       return false;
     }
     recent.push(now);
+    this.global.push(now);
     this.minute.set(client, recent);
     if (this.minute.size > 5_000) this.minute.clear();
     return true;
@@ -166,8 +174,15 @@ function sameOrigin(request: Request, env: AiEnv): boolean {
   return allowed.has(origin);
 }
 
-function clientKey(request: Request): string {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "local";
+/**
+ * Ключ клиента для лимита. x-real-ip и последний адрес в X-Forwarded-For
+ * добавляет ближайший прокси (Vercel, nginx); первый адрес клиент может подставить сам.
+ */
+export function clientKey(request: Request): string {
+  const real = request.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const chain = (request.headers.get("x-forwarded-for") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  return chain.at(-1) ?? "local";
 }
 
 export interface HandlerDeps {

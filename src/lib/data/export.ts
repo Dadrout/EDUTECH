@@ -5,7 +5,8 @@ import { CURRICULUM_COLUMNS, RESULT_COLUMNS } from "./schema";
 const BOM = String.fromCharCode(0xfeff);
 
 export function toCsv(headers: string[], rows: (string | number | null)[][]): string {
-  return Papa.unparse({ fields: headers, data: rows.map((r) => r.map((v) => (v === null ? "" : v))) });
+  // escapeFormulae: текст вида «=…», «+…», «-…», «@…» из загруженных файлов не выполнится как формула Excel.
+  return Papa.unparse({ fields: headers, data: rows.map((r) => r.map((v) => (v === null ? "" : v))) }, { escapeFormulae: true });
 }
 
 /** Скачать текстовый файл. BOM нужен, чтобы Excel корректно открыл кириллицу. */

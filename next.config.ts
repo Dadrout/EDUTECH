@@ -5,6 +5,20 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   experimental: process.env.BILIMLENS_IN_PROCESS_TSC === "1" ? { useTypeScriptCli: false } : undefined,
+  // Базовые заголовки безопасности: запрет встраивания во фреймы, MIME-sniffing и лишних API браузера.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+    ];
+  },
   // A webpack fallback is useful in environments that prohibit Turbopack IPC.
   // Use the same Tailwind loader in both bundlers, with no extra dependencies.
   webpack(config) {

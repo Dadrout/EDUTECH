@@ -112,7 +112,7 @@ function ReportContent() {
   }
 
   if (report.sample.answers === 0) return <EmptyState icon={FileText} title={r.noData} description={m.common.changeFilters} />;
-  return <div className="grid min-w-0 gap-5">
+  return <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
     <Finding title={reliable ? first?.title ?? r.noProblems : m.ux.noReliableFinding} tone={report.problemTopics.length ? "warning" : "default"}>
       <p>{reliable ? first?.detail ?? m.ux.summaryDescription : m.ux.notEnoughData}</p><p className="mt-2 text-xs">{dataset.meta.isSynthetic ? m.data.demoName : report.sample.datasetName} · {formatDate(report.sample.dateFrom)} — {formatDate(report.sample.dateTo)}</p>
     </Finding>
@@ -133,7 +133,7 @@ function ReportContent() {
       <KpiTile label={r.problemTopics} value={formatInt(report.problemTopics.length)} tone={report.problemTopics.length ? "low" : "default"} />
       <KpiTile label={m.topics.colStudents} value={formatInt(report.sample.students)} /><KpiTile label={m.topics.colAnswers} value={formatInt(report.sample.answers)} sub={m.ux.observations} />
     </div>
-    <Tabs defaultValue="summary">
+    <Tabs defaultValue="summary" className="min-w-0">
       <div className="overflow-x-auto"><TabsList className="h-auto w-max max-w-none gap-1">
         <TabsTrigger value="summary">{m.ux.executiveSummary}</TabsTrigger><TabsTrigger value="gaps">{m.ux.learningGaps}</TabsTrigger><TabsTrigger value="textbooks">{r.textbooks}</TabsTrigger><TabsTrigger value="hours">{r.hours}</TabsTrigger><TabsTrigger value="actions">{r.limitations}</TabsTrigger>
       </TabsList></div>

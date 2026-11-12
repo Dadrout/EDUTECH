@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { buildAiContext, MIN_GROUP_STUDENTS, type AiContext } from "@/lib/ai/context";
 import { publicStatus, readAiConfig } from "@/lib/ai/config";
-import { createAiHandler, redactQuestion, RateLimiter } from "@/lib/ai/handler";
+import { clientKey, createAiHandler, redactQuestion, RateLimiter } from "@/lib/ai/handler";
 import { systemPrompt } from "@/lib/ai/prompts";
 import { AiError, classifyError, createGroqProvider, generateWithFallback, type AiProvider } from "@/lib/ai/providers";
 import { allowedNumbers, AiValidationError, validateAiOutput, type AiInsight } from "@/lib/ai/schema";
@@ -287,5 +287,21 @@ describe("number verification with digit grouping", () => {
       expect(() => validateAiOutput("insight", { ...base, answer: `Всего ответов: ${text}.` }, c)).not.toThrow();
     }
     expect(() => validateAiOutput("insight", { ...base, answer: "Всего ответов: 98 765." }, c)).toThrow(/NUMBER/);
+  });
+});
+
+describe("abuse protection", () => {
+  it("caps bursts globally even when client addresses are spoofed", () => {
+    const limiter = new RateLimiter(2, 100, 3);
+    expect(["a", "b", "c"].map((ip) => limiter.allowRequest(ip, 0))).toEqual([true, true, true]);
+    expect(limiter.allowRequest("d", 1)).toBe(false);
+    expect(limiter.allowRequest("d", 61_000)).toBe(true);
+  });
+
+  it("keys clients by the proxy-added address, not the client-supplied one", () => {
+    const req = (h: Record<string, string>) => new Request("http://localhost/api/ai", { headers: h });
+    expect(clientKey(req({ "x-forwarded-for": "1.1.1.1, 203.0.113.7" }))).toBe("203.0.113.7");
+    expect(clientKey(req({ "x-real-ip": "198.51.100.2", "x-forwarded-for": "1.1.1.1" }))).toBe("198.51.100.2");
+    expect(clientKey(req({}))).toBe("local");
   });
 });
